@@ -1,0 +1,24 @@
+{
+  "_comment": "서울부동산정보광장 '토지거래허가 내역 조회'(getContractList.do) 기본 요청 설정. 먼저 page_url 을 GET 해 세션 쿠키를 받고, url 에 params 를 form POST 합니다. {gu5}=시군구 코드 5자리, {from:%Y%m%d}/{to:%Y%m%d}=조회 기간(최대 62일). 응답 키가 바뀌면 fields 의 alias 목록에 추가하세요. 사이트가 바뀌어 동작하지 않으면 브라우저 개발자도구(Network)의 조회 요청을 보고 url/method/params/headers 를 고치거나 `python -m collector toheo --discover` 로 탐지합니다.",
+  "page_url": "https://land.seoul.go.kr/land/other/contractStatus.do",
+  "url": "https://land.seoul.go.kr/land/wsklis/getContractList.do",
+  "method": "POST",
+  "params": {"sggCd": "{gu5}", "beginDate": "{from:%Y%m%d}", "endDate": "{to:%Y%m%d}"},
+  "headers": {"X-Requested-With": "XMLHttpRequest", "Referer": "https://land.seoul.go.kr/land/"},
+  "window_days": 60,
+  "fields": {
+    "sgg": ["SGG_CD"],
+    "acc_year": ["ACC_YEAR"],
+    "acc_no": ["ACC_NO"],
+    "seq": ["OBJ_SEQNO"],
+    "hndl_ymd": ["HNDL_YMD", "EXEC_YMD", "PROCESS_DE"],
+    "address": ["ADDRESS", "ADDR"],
+    "bobn": ["BOBN"],
+    "bubn": ["BUBN"],
+    "jimok": ["JIMOK", "LAWD_JIMOK"],
+    "use_purp": ["USE_PURP", "PRCUSE_NM"],
+    "job_gbn": ["JOB_GBN_NM", "PROCESS_RSLT_NM", "JOB_GBN"],
+    "duty_end": ["DEAL_END_YMD"],
+    "exec_ymd": ["EXEC_YMD"]
+  }
+}

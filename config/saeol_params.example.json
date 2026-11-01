@@ -1,0 +1,19 @@
+{
+  "_comment": "새올 페이지 파라미터 자동 탐지가 실패한 사이트만 여기에 적고 파일 이름을 saeol_params.json 으로 바꾸세요. 키는 Site.id(서울 자치구·단일 구 시는 LAWD 코드, 시 단위 새올은 시 코드: 성남 41130, 수원 41110, 안양 41170, 용인 41460, 화성 41590). host 는 실제 새올 호스트, page_param 은 페이지 번호 파라미터 이름, size_param/page_size 는 선택(없으면 null).",
+  "11680": {
+    "host": "gangnam.eminwon.seoul.kr",
+    "scheme": "https",
+    "method": "GET",
+    "page_param": "pageIndex",
+    "size_param": null,
+    "page_size": 10
+  },
+  "41130": {
+    "host": "eminwon.seongnam.go.kr",
+    "scheme": "https",
+    "method": "GET",
+    "page_param": "pageNo",
+    "size_param": null,
+    "page_size": 10
+  }
+}

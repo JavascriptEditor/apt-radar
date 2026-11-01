@@ -1,0 +1,81 @@
+{
+  "_comment": "네이버 부동산 비공식 API 설정. 응답 구조가 바뀌면 여기만 고치면 됩니다. 각 endpoint 는 순서대로 시도하고 처음 성공한 것을 기억합니다({data}/naver_cfg.json). 필드 이름은 여러 후보(alias)를 순서대로 찾으며, 'a.b.c' 처럼 점이 있으면 중첩 경로로 읽습니다. 2026-10-28 이후 네이버는 fin.land.naver.com/front-api/v1 로 단일화되었으므로 fin.land 를 1순위, m.land 모바일을 2순위로 둡니다. POST endpoint 는 method/json 을 쓰고, 커서 페이지(next_path → 다음 요청의 next_param)를 지원합니다.",
+  "headers": {
+    "User-Agent": "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36",
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "ko-KR,ko;q=0.9"
+  },
+  "delay_sec": 0.7,
+  "complexes_by_cortar": [
+    {
+      "name": "mobile",
+      "url": "https://m.land.naver.com/complex/ajax/complexListByCortarNo?cortarNo={cortarNo}&rletTpCd=APT:ABYG:JGC",
+      "headers": {"Referer": "https://m.land.naver.com/"},
+      "list_path": "result"
+    }
+  ],
+  "articles": [
+    {
+      "name": "fin_list",
+      "method": "POST",
+      "url": "https://fin.land.naver.com/front-api/v1/complex/article/list",
+      "json": {"complexNumber": "{complexNo}", "tradeTypes": ["A1"], "size": 30, "realEstateTypes": ["APT"]},
+      "headers": {"Origin": "https://fin.land.naver.com", "Referer": "https://fin.land.naver.com/complexes/{complexNo}"},
+      "list_path": "result.list",
+      "more_path": "result.hasNextPage",
+      "more_true": [true, "true"],
+      "next_path": "result.lastInfo",
+      "next_param": "lastInfo"
+    },
+    {
+      "name": "mobile",
+      "url": "https://m.land.naver.com/complex/getComplexArticleList?hscpNo={complexNo}&tradTpCd=A1&order=prc&showR0=N&page={page}",
+      "headers": {"Referer": "https://m.land.naver.com/complex/info/{complexNo}"},
+      "list_path": "result.list",
+      "more_path": "result.moreDataYn",
+      "more_true": ["Y", "true", true]
+    }
+  ],
+  "complex_count": [
+    {
+      "name": "fin_count",
+      "url": "https://fin.land.naver.com/front-api/v1/complex/article/count?complexNumber={complexNo}&tradeTypes=A1",
+      "headers": {"Origin": "https://fin.land.naver.com", "Referer": "https://fin.land.naver.com/complexes/{complexNo}"},
+      "count_path": "result.count"
+    }
+  ],
+  "complex_fields": {
+    "id": ["hscpNo", "complexNo", "complexNumber"],
+    "name": ["hscpNm", "complexName", "name"],
+    "cortarNo": ["cortarNo"],
+    "jibun": ["detailAddress", "jibun", "addr"],
+    "households": ["totHsehCnt", "totalHouseholdCount", "totalHouseHoldCount"],
+    "dongCount": ["totDongCnt", "totalBuildingCount"],
+    "highFloor": ["highFloor", "maxFlr", "highestFloor"],
+    "approveYmd": ["useAprvYmd", "useApproveYmd", "useAprYmd"],
+    "lat": ["lat", "latitude"],
+    "lng": ["lng", "longitude"],
+    "type": ["hscpTypeCd", "realEstateTypeCode", "hscpTypeNm"]
+  },
+  "article_fields": {
+    "id": ["atclNo", "articleNo", "articleNumber", "representativeArticleInfo.articleNumber"],
+    "complexId": ["hscpNo", "complexNo", "complexNumber", "representativeArticleInfo.complexNumber"],
+    "dong": ["bildNm", "buildingName", "dongNm", "representativeArticleInfo.articleDetail.buildingName"],
+    "floorInfo": ["flrInfo", "floorInfo"],
+    "floorNo": ["representativeArticleInfo.articleDetail.floorInfo.targetFloor", "floorInfo.targetFloor", "targetFloor"],
+    "topFloor": ["representativeArticleInfo.articleDetail.floorInfo.totalFloor", "floorInfo.totalFloor", "totalFloor"],
+    "area": ["spc2", "area2", "exclusiveArea", "exclusiveSpace", "representativeArticleInfo.spaceInfo.exclusiveSpace"],
+    "supply": ["spc1", "area1", "supplyArea", "supplySpace", "representativeArticleInfo.spaceInfo.supplySpace"],
+    "price": ["prcInfo", "dealOrWarrantPrc", "price", "dealPrice", "representativeArticleInfo.priceInfo.dealPrice"],
+    "confirmYmd": ["atclCfmYmd", "articleConfirmYmd", "cfmYmd", "exposureStartDate", "representativeArticleInfo.verificationInfo.exposureStartDate"],
+    "direct": ["isDirectTrade", "directTradYn", "direct", "representativeArticleInfo.brokerInfo.isDirectTrade"],
+    "sameCnt": ["sameAddrCnt", "sameAddrCount", "duplicatedArticlesInfo.count", "duplicatedArticleCount"],
+    "realtor": ["rltrNm", "realtorName", "cpNm", "brokerageName", "representativeArticleInfo.brokerInfo.brokerageName"],
+    "direction": ["direction", "directionNm", "representativeArticleInfo.articleDetail.direction"],
+    "desc": ["atclFetrDesc", "articleFeatureDesc", "featureDesc", "articleFeatureDescription", "representativeArticleInfo.articleDetail.articleFeatureDescription"],
+    "tags": ["tagList", "tags", "representativeArticleInfo.tagList"],
+    "tradeType": ["tradTpCd", "tradeTypeCode", "tradeType", "representativeArticleInfo.tradeType"]
+  },
+  "article_url": "https://m.land.naver.com/article/info/{atclNo}",
+  "complex_url": "https://m.land.naver.com/complex/info/{complexNo}"
+}

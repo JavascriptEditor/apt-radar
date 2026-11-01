@@ -1,0 +1,157 @@
+name: APT 레이더 수집
+
+# 모드(DESIGN.md 3절):
+#   trades    06:10 · 20:10 KST  실거래 재조회·적재 + 모델 + 단지 매칭 (+ 같은 실행에서 토허 수집, 20:10 은 deep)
+#   listings  09:40 · 13:40 · 17:40 · 21:40 KST  네이버 매물 수집 (차단돼도 job 은 성공, 상태에만 표시)
+#   toheo     짝수시 10분 KST  새올 민원 + 서울 허가 내역 (가벼운 수집; 20:10 KST 는 깊은 수집)
+#   export    사이트 데이터만 다시 생성 (집 PC 가 data 브랜치에 푸시한 매물 반영 등)
+#   model / scan  수동용
+# 모든 모드 끝에 export(--notify) → data 브랜치 커밋 → Pages 배포.
+# cron 은 UTC. 06:10·20:10 KST(= 21:10·11:10 UTC) 는 trades 와 toheo 가 겹치므로 trades 실행 안에서 toheo 를 이어 돌린다.
+
+on:
+  schedule:
+    - cron: "10 21 * * *"                          # 06:10 KST  trades (+ toheo light)
+    - cron: "10 11 * * *"                          # 20:10 KST  trades (+ toheo deep)
+    - cron: "40 0,4,8,12 * * *"                    # 09:40 13:40 17:40 21:40 KST  listings
+    - cron: "10 1,3,5,7,9,13,15,17,19,23 * * *"    # 10 12 14 16 18 22 00 02 04 08 KST  toheo light
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "실행 모드"
+        type: choice
+        default: auto
+        options: [auto, trades, listings, toheo, export, model, scan]
+      deep:
+        description: "토허 깊은 수집 (최근 DEEP_DAYS 일 목록 전체를 다시 읽어 상태 변화 반영)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: collect
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    env:
+      # ---- Secrets
+      MOLIT_SERVICE_KEY: ${{ secrets.MOLIT_SERVICE_KEY }}        # 필수(실거래)
+      NAVER_LAND_TOKEN: ${{ secrets.NAVER_LAND_TOKEN }}          # 선택
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}      # 선택(알림)
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}          # 선택(알림)
+      # ---- Variables (비어 있으면 코드 기본값)
+      MOLIT_API_URL: ${{ vars.MOLIT_API_URL }}
+      DAILY_CALL_LIMIT: ${{ vars.DAILY_CALL_LIMIT }}
+      REGION_FILTER: ${{ vars.REGION_FILTER }}
+      NAVER_MAX_CALLS: ${{ vars.NAVER_MAX_CALLS }}
+      NAVER_DELAY_SEC: ${{ vars.NAVER_DELAY_SEC }}
+      MATCH_MAX_DONGS: ${{ vars.MATCH_MAX_DONGS }}
+      TOHEO_REGION_FILTER: ${{ vars.TOHEO_REGION_FILTER }}
+      TOHEO_DELAY_SEC: ${{ vars.TOHEO_DELAY_SEC }}
+      LIGHT_DAYS: ${{ vars.LIGHT_DAYS }}
+      DEEP_DAYS: ${{ vars.DEEP_DAYS }}
+      MAX_PAGES: ${{ vars.MAX_PAGES }}
+      PERMITS: ${{ vars.PERMITS }}
+      ALERTS_JSON: ${{ vars.ALERTS_JSON }}
+      SITE_URL: ${{ vars.SITE_URL }}
+      DATA_DIR: data
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: data 브랜치 가져오기 (없으면 생성)
+        run: |
+          git fetch origin data:data 2>/dev/null && git worktree add data data || {
+            git worktree add --detach data
+            cd data && git checkout --orphan data && git rm -rf . -q 2>/dev/null || true
+            echo "# 수집 데이터" > README.md && git add README.md && git commit -qm "init data" && cd ..
+          }
+          ls data
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+
+      - name: 모드 결정
+        id: mode
+        env:
+          IN_MODE: ${{ github.event.inputs.mode || 'auto' }}
+          IN_DEEP: ${{ github.event.inputs.deep || 'false' }}
+          SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          MODE="$IN_MODE"; TOHEO=0; DEEP=0
+          if [ "$MODE" = "auto" ]; then
+            case "$SCHEDULE" in
+              "40 0,4,8,12 * * *") MODE=listings ;;
+              "10 1,3,5,7,9,13,15,17,19,23 * * *") MODE=toheo ;;
+              "10 11 * * *") MODE=trades; TOHEO=1; DEEP=1 ;;   # 20:10 KST
+              "10 21 * * *") MODE=trades; TOHEO=1 ;;           # 06:10 KST
+              *) MODE=trades ;;                                 # 수동 auto
+            esac
+          fi
+          [ "$MODE" = "toheo" ] && TOHEO=1
+          [ "$IN_DEEP" = "true" ] && DEEP=1
+          # 토허 데이터가 아직 없으면 첫 실행은 깊게
+          [ "$TOHEO" = "1" ] && [ ! -f data/toheo/cases.csv ] && DEEP=1
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          echo "toheo=$TOHEO" >> "$GITHUB_OUTPUT"
+          echo "deep=$DEEP" >> "$GITHUB_OUTPUT"
+          echo "mode=$MODE toheo=$TOHEO deep=$DEEP"
+
+      - name: 실거래 수집 · 모델 · 단지 매칭
+        if: steps.mode.outputs.mode == 'trades'
+        run: python -m collector run
+
+      - name: 네이버 매물 수집 (차단되면 상태에만 표시)
+        if: steps.mode.outputs.mode == 'listings'
+        continue-on-error: true
+        run: python -m collector listings
+
+      - name: 토허 수집 (새올 민원 · 서울 허가 내역)
+        if: steps.mode.outputs.toheo == '1'
+        continue-on-error: true
+        env:
+          DEEP: ${{ steps.mode.outputs.deep }}
+        run: |
+          # 빈 Variables 는 코드 기본값을 쓰도록 지움
+          for v in REGION_FILTER TOHEO_REGION_FILTER TOHEO_DELAY_SEC LIGHT_DAYS DEEP_DAYS MAX_PAGES PERMITS; do
+            [ -z "${!v}" ] && unset "$v" || true
+          done
+          if [ "$DEEP" = "1" ]; then python -m collector toheo --deep; else python -m collector toheo; fi
+
+      - name: 모델만
+        if: steps.mode.outputs.mode == 'model'
+        run: python -m collector model --partial
+
+      - name: 신설 구 탐색
+        if: steps.mode.outputs.mode == 'scan'
+        run: python -m collector scan --force
+
+      - name: 사이트 데이터 생성 (+ 텔레그램 요약 알림)
+        run: python -m collector export --out site --notify
+
+      - name: data 브랜치 커밋
+        run: |
+          cd data
+          git add -A
+          if ! git diff --cached --quiet; then
+            git -c user.name=collector -c user.email=collector@users.noreply.github.com \
+              commit -qm "collect ${{ steps.mode.outputs.mode }} $(date -u +'%Y-%m-%dT%H:%MZ')"
+            # 집 PC(listings-home / scripts) 가 그 사이 푸시했을 수 있으니 한 번 받아서 얹는다
+            git pull --rebase -X theirs origin data || { git rebase --abort 2>/dev/null || true; }
+            git push origin HEAD:data
+          fi
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - uses: actions/deploy-pages@v4
