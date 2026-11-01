@@ -13,6 +13,7 @@ import datetime as dt
 import json
 import math
 import os
+import re
 import shutil
 from collections import defaultdict
 from pathlib import Path
@@ -38,6 +39,27 @@ def _dump(path: Path, obj) -> None:
     path.write_text(json.dumps(obj, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 
 
+_RE_UNSAFE = re.compile(r"[^0-9A-Za-z가-힣\-_.:]")
+
+
+def safe_name(s) -> str | None:
+    """외부 응답에서 온 값(cid·sgg)을 파일 이름 조각으로 쓸 수 있는지. 경로 구분자·'..'·제어문자가 섞이면 None.
+    (`site/feed/toheo/<sgg>.xml` 처럼 그대로 경로가 되므로 site/ 밖에 쓰거나 export 가 예외로 죽는 일을 막는다)"""
+    s = str(s or "")
+    if not s or _RE_UNSAFE.search(s) or ".." in s or s.startswith("."):
+        return None
+    return s
+
+
+def _check_out_dir(out: Path, data_root: Path) -> None:
+    """out/data 와 수집 데이터 디렉터리(DATA_DIR)가 겹치면 rmtree 로 원본(data/toheo 등)을 지우게 되므로 거부."""
+    out_data = (out / "data").resolve()
+    root = Path(data_root).resolve()
+    # 같은 폴더(--out . 에 DATA_DIR=data)거나 DATA_DIR 이 out/data 안에 있으면 rmtree 가 원본을 지운다
+    if out_data == root or out_data in root.parents:
+        raise ValueError(f"export 출력 {out_data} 이(가) 수집 데이터 디렉터리 {root} 와 겹칩니다 — --out 을 다른 폴더로 지정하세요")
+
+
 def compact_listing(l: dict, c: dict, j: dict | None, naver_url: str, toheo: dict | None = None) -> dict:
     """사이트 매물 카드 1건. toheo = {"zone": 0|1|2, "until": str|None, "open": int|None, "est": {p50,p90}|None}."""
     return {
@@ -45,7 +67,8 @@ def compact_listing(l: dict, c: dict, j: dict | None, naver_url: str, toheo: dic
         "dongRaw": l.get("dongRaw", ""), "dong": l.get("dong", ""), "floor": _int(l.get("floor")), "top": _int(l.get("top")),
         "area": _float(l.get("area")), "supply": _float(l.get("supply")), "grp": _int(l.get("grp")), "price": _int(l.get("price")),
         "confirm": l.get("confirmYmd", ""), "direct": _int(l.get("direct")) or 0, "sameCnt": _int(l.get("sameCnt")) or 1,
-        "realtor": l.get("realtor", ""), "dir": l.get("direction", ""), "desc": l.get("desc", ""),
+        "realtor": l.get("realtor", ""), "dir": l.get("direction", ""),
+        # desc(중개사 자유 입력 설명)는 연락처 등이 섞일 수 있고 사이트가 쓰지 않으므로 내보내지 않는다
         "tags": [t for t in (l.get("tags") or "").split("|") if t], "first": l.get("firstSeen", ""), "last": l.get("lastSeen", ""),
         "url": naver_url, "toheo": dict(toheo or EMPTY_TOHEO),
         **({"fair": j["fair"], "fairBase": j["fairBase"], "diff": j["diffPct"], "diffAmt": j["diffAmt"], "grade": j["grade"],
@@ -85,8 +108,10 @@ class ToheoData:
         self.permits: dict[str, dict] = self.tstore.load_permits() if self.tstore else {}
         try:
             self.dz_data = dz.load()
-        except (OSError, ValueError):
+        except OSError:
             self.dz_data = {"items": [], "references": []}
+        # JSON 문법 오류·필수 필드 누락(ValueError)은 그대로 올린다: 사람이 고친 config 의 실수를 조용히 삼키면 사이트에서
+        # 지정 현황이 통째로 사라지거나 토허 탭이 멈춘다.
         self.dz_items = dz.with_status(self.dz_data, today)
         self.events: list[dict] = engine.store.read_events()
         self.tlog: dict = engine.fetch_log.get("toheo") or {}
@@ -164,10 +189,15 @@ def export_site(engine: Engine, out_dir: str | os.PathLike, site_url: str | None
     out = Path(out_dir)
     data = out / "data"
     feed = out / "feed"
+    _check_out_dir(out, engine.store.root)
     for d in (data / "c", data / "l", data / "toheo", feed / "c", feed / "toheo"):
         if d.exists():
             shutil.rmtree(d)
         d.mkdir(parents=True, exist_ok=True)
+    # feed 루트의 <sgg>.xml 도 매번 새로 쓴다(지역이 빠지거나 active 매물이 0 이 된 시군구의 옛 RSS 가 남지 않게)
+    for p in feed.glob("*.xml"):
+        p.unlink()
+    skipped_names: list[str] = []
     site_url = (site_url or os.environ.get("SITE_URL") or "").rstrip("/")
     store = engine.store
     gen = now_kst().isoformat(timespec="seconds")
@@ -268,6 +298,9 @@ def export_site(engine: Engine, out_dir: str | os.PathLike, site_url: str | None
     for cid, c in engine.complexes.items():
         if c.get("sgg") not in engine.codes:
             continue
+        if safe_name(cid) is None:
+            skipped_names.append(cid)
+            continue
         grp = cx_group.get(cid, "")
         m = models.get(grp)
         cm = (m or {}).get("complexes", {}).get(cid)
@@ -317,6 +350,9 @@ def export_site(engine: Engine, out_dir: str | os.PathLike, site_url: str | None
     # ---- 지역별 매물·전체 TOP
     for sgg, ls in by_sgg_listings.items():
         ls.sort(key=lkey)
+        if safe_name(sgg) is None:
+            skipped_names.append(sgg)
+            continue
         _dump(data / "l" / f"{sgg}.json", {"sgg": sgg, "generatedAt": gen, "listings": ls})
     top = [l for l in all_listings if l.get("fair") and l.get("conf") in ("high", "mid") and l.get("grade") in ("SS", "S", "A")][:400]
     _dump(data / "top.json", {"generatedAt": gen, "listings": top, "total": len(all_listings),
@@ -418,7 +454,10 @@ def export_site(engine: Engine, out_dir: str | os.PathLike, site_url: str | None
     fresh_good = [l for l in all_listings if l.get("fair") and l.get("grade") in ("SS", "S") and (l.get("first") or "") >= cutoff
                   and l.get("conf") != "low"]
     (feed / "all.xml").write_text(rss("급매판정 — 새 급매 (SS·S, 7일)", "".join(item(l) for l in fresh_good[:100])), encoding="utf-8")
-    for sgg, ls in by_sgg_listings.items():
+    for sgg in sorted(set(by_sgg_listings) | set(engine.codes)):
+        if safe_name(sgg) is None:
+            continue
+        ls = by_sgg_listings.get(sgg, [])
         good = [l for l in ls if l.get("fair") and l.get("grade") in ("SS", "S", "A") and (l.get("first") or "") >= cutoff][:60]
         (feed / f"{sgg}.xml").write_text(rss(f"급매판정 — {regions.short_name(sgg, engine.live)}", "".join(item(l) for l in good)),
                                          encoding="utf-8")
@@ -433,20 +472,27 @@ def export_site(engine: Engine, out_dir: str | os.PathLike, site_url: str | None
         ls = judged.get(cid, [])
         if not ls and not by_cid_entries.get(cid):
             continue
+        if safe_name(cid) is None:
+            continue
         name = engine.complexes.get(cid, {}).get("name", cid)
         body = "".join(item(l) for l in sorted(ls, key=lkey)[:40]) + "".join(permit_item(p) for p in by_cid_entries.get(cid, [])[:40])
         (feed / "c" / f"{cid}.xml").write_text(rss(f"APT 레이더 — {name} (급매·허가)", body), encoding="utf-8")
     (feed / "toheo" / "all.xml").write_text(rss("APT 레이더 — 토지거래허가 소식 (서울 단지별)",
                                                 "".join(permit_item(p) for p in feed_entries[:300])), encoding="utf-8")
     for sgg, es in by_sgg_entries.items():
-        if not sgg:
+        if not sgg or safe_name(sgg) is None:
+            if sgg:
+                skipped_names.append(sgg)
             continue
         (feed / "toheo" / f"{sgg}.xml").write_text(rss(f"APT 레이더 — {tr.label(sgg, engine.live)} 허가 소식",
                                                       "".join(permit_item(p) for p in es[:200])), encoding="utf-8")
 
-    return {"complexes": len(index_rows), "listings": len(all_listings), "models": len(models),
-            "permits": len(th.permits), "cases": len(th.cases), "goneLinks": len(links),
-            "toheoRegions": len(th_out["regions"])}
+    res = {"complexes": len(index_rows), "listings": len(all_listings), "models": len(models),
+           "permits": len(th.permits), "cases": len(th.cases), "goneLinks": len(links),
+           "toheoRegions": len(th_out["regions"])}
+    if skipped_names:
+        res["skippedUnsafeNames"] = sorted(set(skipped_names))[:20]
+    return res
 
 
 def _pub(date_iso: str) -> str:

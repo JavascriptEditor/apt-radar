@@ -17,7 +17,7 @@ from . import regions
 from .deals import normalize
 from .model import GroupModel, ym_add
 from .molit import BudgetExhausted, MolitClient
-from .naver import Blocked, NaverClient, match_complexes
+from .naver import Blocked, CallBudgetExceeded, NaverClient, match_complexes
 from .store import Store, group_rows_by_year
 
 KST = dt.timezone(dt.timedelta(hours=9))
@@ -29,6 +29,7 @@ GONE_KEEP_DAYS = 120      # gone 매물 행을 listings.csv 에 남겨 두는 �
 EVENT_KEEP_DAYS = 400     # listing_events.csv 보관 기간
 SUSPECT_MIN_PREV = 5      # 직전 listingsN 이 이 이상인데 0건이면 의심 응답
 SUSPECT_ACCEPT_AFTER = 3  # 의심 응답이 연속 n회 이어지면 실제 0건으로 받아들임(영구 정체 방지)
+STALE_ACTIVE_DAYS = 14    # 수집 대상에서 빠진 단지(지역 필터 축소 등)의 active 매물: lastSeen 이 이보다 오래되면 이벤트 없이 gone
 
 
 def now_kst() -> dt.datetime:
@@ -58,17 +59,31 @@ def _price(v) -> int | None:
         return None
 
 
-def apply_articles(listings: dict[str, dict], cid: str, arts: list[dict], today: str) -> tuple[list[dict], dict]:
+def _key_str(v) -> str:
+    """swap 판정 키 구성 요소: CSV 에서 읽은 '' 와 이번 응답의 None 을 같은 값으로 본다."""
+    return "" if v in (None, "") else str(v)
+
+
+def _twin_key(row: dict) -> tuple[str, str, str, str]:
+    p = _price(row.get("price"))
+    return (_key_str(row.get("grp")), _key_str(row.get("dong")), _key_str(row.get("floor")), _key_str(p))
+
+
+def apply_articles(listings: dict[str, dict], cid: str, arts: list[dict], today: str, *,
+                   naver_id: str | None = None, partial: bool = False) -> tuple[list[dict], dict]:
     """매물 상태 기계(DESIGN 2절). 단지 cid 의 **성공한** 조회 결과 arts 를 listings(atclNo→row, 제자리 수정)에 반영.
 
     - 응답에 있는 매물: status=active, miss=0, lastSeen=today. 신규 → new 이벤트. gone 이었으면 relist 이벤트.
       호가가 바뀌면 price 이벤트(priceChanges+1).
     - 응답에 없는 기존 active 매물: miss+1, miss>=LISTING_MISS_GONE 이 되는 순간 gone(goneAt=today).
       sameCnt>1 이고 같은 cid·grp·dong·floor·price 의 active 매물이 남아 있으면 대표 매물 교체(swap)로 보고 이벤트 없음.
-    반환: (이벤트 행 목록, {"new","relist","price","gone","swap"} 카운트). 실패/의심 응답이면 호출하지 말 것.
+    - naver_id 를 주면 '응답에 없음' 판정은 이번에 조회한 네이버 단지(naverId)의 행에만 적용한다. 재매칭으로 naverId 가
+      바뀐 단지의 옛 매물은 이벤트 없이 상태만 gone 으로 정리(unmatched).
+    - partial=True(목록이 max_pages 에서 잘림)면 응답에 있는 매물만 반영하고 miss 는 올리지 않는다.
+    반환: (이벤트 행 목록, {"new","relist","price","gone","swap","unmatched"} 카운트). 실패/의심 응답이면 호출하지 말 것.
     """
     events: list[dict] = []
-    cnt = {"new": 0, "relist": 0, "price": 0, "gone": 0, "swap": 0}
+    cnt = {"new": 0, "relist": 0, "price": 0, "gone": 0, "swap": 0, "unmatched": 0}
     fresh_ids: set[str] = set()
 
     def ev(kind: str, row: dict, price, prev) -> None:
@@ -104,8 +119,17 @@ def apply_articles(listings: dict[str, dict], cid: str, arts: list[dict], today:
             ev("price", row, new_price, old_price)
 
     # 응답에 없는 기존 active 매물
+    fresh_keys: set[tuple[str, str, str, str]] | None = None
     for aid, row in listings.items():
         if row.get("cid") != cid or aid in fresh_ids or (row.get("status") or "active") != "active":
+            continue
+        if naver_id and row.get("naverId") and str(row["naverId"]) != str(naver_id):
+            # 다른 네이버 단지에서 수집된 옛 매물(재매칭) → 조회 대상이 아니므로 이벤트 없이 정리
+            row["status"] = "gone"
+            row["goneAt"] = today
+            cnt["unmatched"] += 1
+            continue
+        if partial:
             continue
         miss = _int0(row.get("miss")) + 1
         row["miss"] = miss
@@ -115,12 +139,9 @@ def apply_articles(listings: dict[str, dict], cid: str, arts: list[dict], today:
         row["goneAt"] = today
         price = _price(row.get("price"))
         if _int0(row.get("sameCnt")) > 1:
-            key = (str(row.get("grp", "")), str(row.get("dong", "")), str(row.get("floor", "")), str(price if price is not None else ""))
-            twin = any(
-                k in fresh_ids and (str(r.get("grp", "")), str(r.get("dong", "")), str(r.get("floor", "")),
-                                    str(_price(r.get("price")) if _price(r.get("price")) is not None else "")) == key
-                for k, r in listings.items())
-            if twin:
+            if fresh_keys is None:
+                fresh_keys = {_twin_key(listings[k]) for k in fresh_ids}
+            if _twin_key(row) in fresh_keys:
                 cnt["swap"] += 1  # 같은 집 대표 매물 교체: 상태만 gone, 이벤트 없음
                 continue
         ev("gone", row, price, None)
@@ -233,7 +254,9 @@ class Engine:
                 out.append(r)
         return out
 
-    def run_trades(self, reserve: int = 800) -> dict:
+    def run_trades(self, reserve: int = 800, max_sec: int = 0) -> dict:
+        """실거래 재조회·적재. max_sec > 0 이면 그 시간이 지난 뒤에는 새 코드/달로 넘어가지 않고 'time' 으로 멈춘다
+        (Actions 의 다음 예약 실행과 겹치지 않게)."""
         assert self.molit, "MOLIT 클라이언트 필요"
         bf = self.progress.setdefault("backfill", {})
         last_refresh = self.progress.setdefault("lastRefresh", {})
@@ -241,12 +264,16 @@ class Engine:
         refresh_months = [ym_add(cur, -k) for k in range(REFRESH_MONTHS)]
         summary = {"refreshed": [], "backfilled": {}, "stopped": ""}
         t0 = time.time()
+        timed_out = lambda: max_sec > 0 and time.time() - t0 > max_sec  # noqa: E731
         try:
             # 1) 최근 6개월 재조회 — 가장 오래된 것부터. (reserve 는 적재에만 적용: 하루 두 번째 실행은 남겨 둔 몫으로 재조회)
             order = sorted(self.codes, key=lambda c: last_refresh.get(c, ""))
             for code in order:
                 if self.molit.remaining() <= 0:
                     summary["stopped"] = "budget"
+                    break
+                if timed_out():
+                    summary["stopped"] = "time"
                     break
                 fresh = {}
                 for ym in refresh_months:
@@ -271,6 +298,9 @@ class Engine:
                 while not st["done"]:
                     if self.molit.remaining() <= reserve:
                         summary["stopped"] = "reserve"
+                        break
+                    if timed_out():
+                        summary["stopped"] = "time"
                         break
                     ym = st["cursor"]
                     if ym[:4] != cur_year:
@@ -367,7 +397,7 @@ class Engine:
 
         todo = [(k, v) for k, v in by_dong.items() if any(need(c) for c in v)]
         todo.sort(key=lambda kv: min(c.get("matchedAt") or "" for c in kv[1]))
-        done, matched, status = 0, 0, "ok"
+        done, matched, changed, status = 0, 0, 0, "ok"
         try:
             for (sgg, umd_cd), cxs in todo[:max_dongs]:
                 cands = {sgg + umd_cd}
@@ -388,6 +418,10 @@ class Engine:
                     c["matchedAt"] = today
                     if c["cid"] in m:
                         n, score = m[c["cid"]]
+                        if c.get("naverId") and str(c["naverId"]) != str(n["naverId"]):
+                            # 재매칭으로 네이버 단지가 바뀜 — 옛 naverId 의 매물은 다음 listings 에서 이벤트 없이 정리된다
+                            changed += 1
+                            self.log(f"[match] {c['cid']} naverId {c['naverId']} → {n['naverId']} ({c.get('naverName')} → {n['naverName']}, {score})")
                         c.update({"naverId": n["naverId"], "naverName": n["naverName"],
                                   "households": n.get("households") or "", "highFloor": n.get("highFloor") or "",
                                   "lat": n.get("lat") or "", "lng": n.get("lng") or "", "matchScore": score})
@@ -398,30 +432,57 @@ class Engine:
         except Blocked as e:
             status = f"blocked: {e}"
             self.log(f"[match] {status}")
+        except CallBudgetExceeded as e:
+            status = "partial"
+            self.log(f"[match] 호출 상한: {e}")
         self.fetch_log["match"] = {"at": now_kst().isoformat(timespec="seconds"), "dongs": done, "matched": matched,
-                                   "status": status, "calls": self.naver.calls, "pending": max(0, len(todo) - done)}
+                                   "changed": changed, "status": status, "calls": self.naver.calls,
+                                   "pending": max(0, len(todo) - done)}
         self._save()
         return self.fetch_log["match"]
 
     # ---------------------------------------------------------- listings
-    def run_listings(self, max_calls: int = 1500, max_sec: int = 2400) -> dict:
+    def run_listings(self, max_calls: int = 1500, max_sec: int = 2400, min_interval_min: int = 0) -> dict:
         """네이버 매물 수집 + 상태 기계(소프트 삭제·이벤트). DESIGN 2절.
 
         - articles_ok() 가 ok=False(http 오류·HTML·구조 불명·예외) 면 그 단지의 매물 상태는 전혀 바꾸지 않는다.
         - 의심 응답 가드: 직전 listingsN >= SUSPECT_MIN_PREV 인데 0건이면 실패로 취급(suspect). 단, 같은 단지에서
           의심이 SUSPECT_ACCEPT_AFTER 회 연속이면 실제 0건으로 받아들인다(progress.json 의 listingsSuspect 로 추적).
+        - 목록이 max_pages 에서 잘린 단지(truncated)는 응답에 있는 매물만 반영하고 miss 를 올리지 않는다.
+        - 호출 상한(max_calls)은 단지 시작 전에 보고, 단지 도중에 클라이언트 상한에 걸리면(CallBudgetExceeded)
+          그 단지는 건드리지 않고 'partial' 로 끝낸다(차단 아님).
+        - min_interval_min > 0 이면 직전 성공(ok/partial) 수집이 그 시간 안이면 아무것도 하지 않는다
+          (Actions 와 집 PC 두 수집기가 20분 간격으로 같은 상태기계를 돌려 miss 가 이중으로 오르는 것 방지).
+        - 수집 대상이 아닌 단지(지역 필터 밖·naverId 없음)의 active 행은 lastSeen 이 STALE_ACTIVE_DAYS 지나면 이벤트 없이 gone.
         - gone 후 GONE_KEEP_DAYS 지난 행 삭제, EVENT_KEEP_DAYS 지난 이벤트 정리.
         """
         assert self.naver
         today = today_str()
+        now = now_kst()
+        prev = self.fetch_log.get("listings") or {}
+        if min_interval_min > 0 and prev.get("at") and not str(prev.get("status", "")).startswith(("blocked", "error", "skipped")):
+            try:
+                last = dt.datetime.fromisoformat(prev["at"])
+                if last.tzinfo is None:
+                    last = last.replace(tzinfo=KST)
+                age_min = (now - last).total_seconds() / 60
+            except ValueError:
+                age_min = float("inf")
+            if age_min < min_interval_min:
+                res = {**prev, "status": f"skipped: {int(age_min)}분 전 수집 있음 (간격 {min_interval_min}분)",
+                       "skippedAt": now.isoformat(timespec="seconds")}
+                self.log(f"[listings] {res['status']}")
+                return res
         listings = self.store.read_listings()
         cands = [c for c in self.complexes.values() if c.get("naverId") and c["sgg"] in self.codes]
         # 최근 거래가 있는 단지 우선, 그 안에서 오래 안 본 순
         cands.sort(key=lambda c: (c.get("listingsAt") or "", -(int(c.get("lastYm") or 0))))
+        cand_cids = {c["cid"] for c in cands}
         suspect_streak: dict[str, int] = self.progress.setdefault("listingsSuspect", {})
         t0 = time.time()
         status, done = "ok", 0
-        cnt = {"new": 0, "relist": 0, "price": 0, "gone": 0, "swap": 0, "suspect": 0, "failed": 0}
+        cnt = {"new": 0, "relist": 0, "price": 0, "gone": 0, "swap": 0, "unmatched": 0, "truncated": 0, "stale": 0,
+               "suspect": 0, "failed": 0}
         pending_events: list[dict] = []
 
         def flush() -> None:
@@ -438,11 +499,15 @@ class Engine:
                 nid = c["naverId"]
                 try:
                     arts, ok = self.naver.articles_ok(nid)
-                except Blocked:
+                except (Blocked, CallBudgetExceeded):
                     raise
                 except Exception as e:  # 파싱 예외 등: 그 단지만 실패로
                     self.log(f"[listings] {c['cid']} 예외: {e}")
                     arts, ok = [], False
+                truncated = bool(ok and getattr(self.naver, "last_truncated", False))
+                if truncated:
+                    cnt["truncated"] += 1
+                    self.log(f"[listings] {c['cid']} 목록 잘림({len(arts)}건) — 미출현 매물의 miss 는 올리지 않음")
                 prev_n = _int0(c.get("listingsN"))
                 suspect = False
                 if ok and not arts and prev_n >= SUSPECT_MIN_PREV:
@@ -461,16 +526,26 @@ class Engine:
                         flush()
                     continue
                 suspect_streak.pop(nid, None)
-                events, k = apply_articles(listings, c["cid"], arts, today)
+                events, k = apply_articles(listings, c["cid"], arts, today, naver_id=nid, partial=truncated)
                 pending_events += events
                 for key in k:
                     cnt[key] += k[key]
-                c["listingsN"] = len(arts)
+                if not truncated or len(arts) > prev_n:
+                    c["listingsN"] = len(arts)
                 if done % 100 == 0:
                     flush()
         except Blocked as e:
             status = f"blocked: {e}"
             self.log(f"[listings] {status}")
+        except CallBudgetExceeded as e:
+            status = "partial"
+            self.log(f"[listings] 호출 상한: {e}")
+        # 수집 대상 밖 단지의 오래된 active 행 → 이벤트 없이 gone (사이트에 '현재 매물' 로 남지 않게)
+        stale_cut = date_add(today, -STALE_ACTIVE_DAYS)
+        for v in listings.values():
+            if (v.get("status") or "active") == "active" and v.get("cid") not in cand_cids and (v.get("lastSeen") or today) < stale_cut:
+                v["status"], v["goneAt"] = "gone", today
+                cnt["stale"] += 1
         # gone 120일 정리(이벤트는 남음) + 이벤트 400일 정리
         cutoff = date_add(today, -GONE_KEEP_DAYS)
         stale = [k for k, v in listings.items() if v.get("status") == "gone" and (v.get("goneAt") or today) < cutoff]

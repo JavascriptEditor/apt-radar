@@ -107,10 +107,26 @@ class ToheoStore:
         self.write_json("seoul_permits_cfg.json", cfg)
 
     def save_raw(self, date: str, sgg: str, obj) -> Path:
-        """원본 응답을 raw/seoul/<date>/<sgg>.json.gz 로 보관(같은 날 재실행은 덮어씀)."""
+        """원본 응답을 raw/seoul/<date>/<sgg>.json.gz 로 보관.
+
+        같은 날 파일이 이미 있으면 `windows` 배열을 (from, to) 창 단위로 병합한다 — 같은 창만 새 응답으로 교체하고
+        다른 창(예: 아침 백필 실행이 받은 과거 창)은 남긴다. 그래서 2시간 뒤 가벼운 실행이 백필 원본을 지우지 않는다."""
         d = self.root / "raw" / "seoul" / date
         d.mkdir(parents=True, exist_ok=True)
         p = d / f"{sgg}.json.gz"
+        if isinstance(obj, dict) and isinstance(obj.get("windows"), list) and p.exists():
+            try:
+                with gzip.open(p, "rt", encoding="utf-8") as f:
+                    old = json.load(f)
+            except (OSError, ValueError):
+                old = None
+            if isinstance(old, dict) and isinstance(old.get("windows"), list):
+                keyed = {(w.get("from"), w.get("to")): w for w in old["windows"] if isinstance(w, dict)}
+                for w in obj["windows"]:
+                    if isinstance(w, dict):
+                        keyed[(w.get("from"), w.get("to"))] = w
+                merged = sorted(keyed.values(), key=lambda w: (w.get("to") or "", w.get("from") or ""), reverse=True)
+                obj = {**old, **obj, "windows": merged}
         tmp = p.with_suffix(".tmp")
         with gzip.open(tmp, "wt", encoding="utf-8") as f:
             json.dump(obj, f, ensure_ascii=False, separators=(",", ":"))

@@ -17,11 +17,17 @@ from .regions import Site, sgg_for_case
 from .saeol import Row
 
 IN_PROGRESS = ("처리중", "접수", "진행")
+# 종결성 문자열이 들어 있으면 '접수취소'·'접수반려' 처럼 '접수' 를 포함해도 처리중이 아니다
+CLOSED = ("취소", "취하", "반려", "완료", "해결", "종결", "불허", "거부", "각하", "처리됨")
 DROP_AFTER_MISSING = 3
+CLOSED_OUT_OF_WINDOW = "완료(관측종료)"   # 수집 창(DEEP_DAYS) 밖으로 밀려나 더는 관측할 수 없는 처리중 민원
 
 
 def is_open(status: str) -> bool:
-    return any(k in (status or "") for k in IN_PROGRESS)
+    s = status or ""
+    if any(k in s for k in CLOSED):
+        return False
+    return any(k in s for k in IN_PROGRESS)
 
 
 def _as_date(d) -> dt.date:
@@ -33,11 +39,15 @@ def _as_date(d) -> dt.date:
 
 
 def merge_rows(cases: dict[tuple[str, str], dict], site: Site, rows: list[Row], now: dt.datetime,
-               covered_from: dt.date | None, reached_cutoff: bool) -> dict:
-    """fetch 결과를 cases 에 반영. key=(site.id, 접수번호). covered_from: 이번 수집이 빠짐없이 읽은 접수일 하한."""
+               covered_from: dt.date | None, reached_cutoff: bool, close_after_days: int | None = None) -> dict:
+    """fetch 결과를 cases 에 반영. key=(site.id, 접수번호). covered_from: 이번 수집이 빠짐없이 읽은 접수일 하한.
+
+    close_after_days: 접수 후 이 일수가 지나도록 '처리중' 인 채 관측 범위(covered_from) 밖에 있는 민원은
+    '완료(관측종료)'(done_observed=0, 처리기간 통계 제외) 로 닫아 처리중 건수가 영구히 부풀지 않게 한다.
+    """
     today = now.date().isoformat()
     ts = now.replace(tzinfo=None).isoformat(timespec="seconds")
-    stats = {"new": 0, "updated": 0, "completed_observed": 0, "dropped": 0}
+    stats = {"new": 0, "updated": 0, "completed_observed": 0, "dropped": 0, "closed_out": 0}
     seen_keys: set[tuple[str, str]] = set()
     for r in rows:
         key = (site.id, r.no)
@@ -74,10 +84,20 @@ def merge_rows(cases: dict[tuple[str, str], dict], site: Site, rows: list[Row], 
     # 목록에서 사라진 '처리중' 민원(이번 수집 범위 안)
     if covered_from is not None and reached_cutoff:
         lo = _as_date(covered_from).isoformat()
+        close_lo = (now.date() - dt.timedelta(days=close_after_days)).isoformat() if close_after_days else None
         for key, c in cases.items():
             if c["site"] != site.id or key in seen_keys:
                 continue
-            if not is_open(c["status"]) or c["received"] < lo:
+            if not is_open(c["status"]):
+                continue
+            if c["received"] < lo:
+                # 관측 범위 밖: 사라짐으로 세지 않되, 너무 오래됐으면 관측 종료로 닫는다
+                if close_lo and c["received"] < close_lo:
+                    c["status"] = CLOSED_OUT_OF_WINDOW
+                    c["status_changed"] = ts
+                    c["done_date"] = today
+                    c["done_observed"] = "0"
+                    stats["closed_out"] += 1
                 continue
             c["missing"] = str(int(c.get("missing") or 0) + 1)
             if int(c["missing"]) >= DROP_AFTER_MISSING:

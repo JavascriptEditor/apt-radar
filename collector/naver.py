@@ -25,6 +25,22 @@ class Blocked(Exception):
     """차단되었거나 더 이상 호출하면 안 되는 상태."""
 
 
+class CallBudgetExceeded(Exception):
+    """이번 실행의 네이버 호출 상한(max_calls)에 도달. 차단이 아니므로 호출자는 'partial' 로 처리한다."""
+
+
+# 중개사 자유 입력 설명(desc)에 섞여 들어오는 연락처·이메일은 저장하지 않는다(공개 data 브랜치에 그대로 실리므로).
+_RE_PHONE = re.compile(r"(?<!\d)0\d{1,2}[-. ]?\d{3,4}[-. ]?\d{4}(?!\d)")
+_RE_EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
+
+
+def mask_contacts(s: str) -> str:
+    """전화번호·이메일 패턴을 '***' 로 가린다."""
+    if not s:
+        return ""
+    return _RE_EMAIL.sub("***", _RE_PHONE.sub("***", s))
+
+
 def load_cfg(path: str | os.PathLike | None = None) -> dict:
     p = Path(path) if path else DEFAULT_CFG
     return json.loads(p.read_text(encoding="utf-8"))
@@ -97,7 +113,8 @@ class NaverClient:
                  timeout: int = 20, max_calls: int | None = None):
         self.cfg = cfg or load_cfg()
         self.token = token or os.environ.get("NAVER_LAND_TOKEN", "")
-        self.delay = float(delay if delay is not None else os.environ.get("NAVER_DELAY_SEC", self.cfg.get("delay_sec", 0.7)))
+        # 환경변수가 빈 문자열(Actions 의 미설정 Variable)이면 설정 기본값
+        self.delay = float(delay if delay is not None else (os.environ.get("NAVER_DELAY_SEC") or self.cfg.get("delay_sec", 0.7)))
         self.s = session or requests.Session()
         self.s.headers.update(self.cfg.get("headers", {}))
         self.timeout = timeout
@@ -114,6 +131,7 @@ class NaverClient:
                 pass
         self.log: list[str] = []
         self.last_data = None  # 마지막으로 받은 응답(JSON). probe 에서 구조를 확인할 때 씀.
+        self.last_truncated = False  # 직전 articles_ok() 가 max_pages 에 걸려 목록이 잘렸는지(호출자가 miss 를 올리면 안 됨)
 
     # ----------------------------------------------------------------- io
     def _save_state(self) -> None:
@@ -135,7 +153,7 @@ class NaverClient:
         if self.blocked_reason:
             raise Blocked(self.blocked_reason)
         if self.max_calls is not None and self.calls >= self.max_calls:
-            raise Blocked("이번 실행의 네이버 호출 상한 도달")
+            raise CallBudgetExceeded(f"이번 실행의 네이버 호출 상한 도달 ({self.max_calls})")
         fmt.setdefault("token", self.token)
         fmt.setdefault("page", 1)
         url = ep["url"].format(**fmt)
@@ -191,7 +209,8 @@ class NaverClient:
 
     def _try_endpoints(self, kind: str, must_have: list[str], **fmt) -> tuple[list[dict], dict | None, object | None]:
         """설정된 endpoint 들을 순서대로. 기억해 둔 endpoint 가 있으면 그것부터.
-        반환 (목록, 성공한 endpoint 또는 None, 응답). 모두 실패하면 ([], None, 마지막 응답)."""
+        반환 (목록, 성공한 endpoint 또는 None, 응답). 모두 실패하면 ([], None, 마지막 응답).
+        endpoint 는 **비어 있지 않은 목록**을 돌려줬을 때만 기억한다(빈 목록은 '단지번호를 모름' 일 수도 있어 확인된 게 아님)."""
         eps = list(self.cfg.get(kind, []))
         remembered = self.state.get(kind)
         if remembered:
@@ -211,7 +230,7 @@ class NaverClient:
                 last_status = "nolist"
                 self.log.append(f"{kind} {ep.get('name')}: 목록 구조를 찾지 못함")
                 continue
-            if self.state.get(kind) != ep.get("name"):
+            if lst and self.state.get(kind) != ep.get("name"):
                 self.state[kind] = ep.get("name")
                 self._save_state()
             return lst, ep, data
@@ -251,11 +270,18 @@ class NaverClient:
         f = self.cfg["article_fields"]
         out: list[dict] = []
         seen = set()
+        self.last_truncated = False
         # 1페이지: endpoint 선택(기억해 둔 것부터)
         lst, ep, data = self._try_endpoints("articles", f["id"], complexNo=complex_no, page=1)
         if ep is None:
             return [], False
+        if not lst and self.state.get("articles") != ep.get("name"):
+            # 아직 한 번도 매물을 돌려준 적 없는 endpoint 의 빈 목록은 '정상 0건' 으로 믿지 않는다.
+            # (fin.land 가 m.land hscpNo 를 모르면 구조만 정상인 빈 목록을 돌려줄 수 있음 → 전 매물 gone 방지)
+            self.log.append(f"articles {complex_no}: {ep.get('name')} 미확인 endpoint 의 0건 응답 — 반영 안 함")
+            return [], False
         cursor = None
+        more = None
         for page in range(1, max_pages + 1):
             if page > 1:
                 # 2페이지부터는 같은 endpoint 로. 커서(next_path) 가 있으면 커서 페이지, 없으면 {page} 번호 페이지.
@@ -284,11 +310,19 @@ class NaverClient:
                 out.append(self._norm_article(d, complex_no, f))
             more = _dig(data, ep.get("more_path", "")) if ep.get("more_path") else None
             if got == 0 or more is None or more not in ep.get("more_true", [True]):
+                more = None
                 break
             if ep.get("next_path"):
                 cursor = _dig(data, ep["next_path"])
                 if cursor in (None, "", [], {}):
+                    more = None
                     break
+        else:
+            # max_pages 를 다 썼는데 다음 페이지가 남아 있음 → 목록이 잘림. 응답 자체는 믿을 수 있으나
+            # '여기 없는 매물은 사라졌다' 고 볼 수 없으므로 호출자는 miss 를 올리면 안 된다(last_truncated).
+            if more is not None:
+                self.last_truncated = True
+                self.log.append(f"articles {complex_no}: {max_pages}페이지 상한으로 목록 잘림 ({len(out)}건)")
         return out, True
 
     def articles(self, complex_no: str, max_pages: int = 30) -> list[dict]:
@@ -343,7 +377,7 @@ class NaverClient:
             "sameCnt": _int(pick(d, f.get("sameCnt", []))) or 1,
             "realtor": str(pick(d, f.get("realtor", [])) or ""),
             "direction": str(pick(d, f.get("direction", [])) or ""),
-            "desc": str(pick(d, f.get("desc", [])) or "")[:80],
+            "desc": mask_contacts(str(pick(d, f.get("desc", [])) or ""))[:80],
             "tags": "|".join(str(t) for t in tags)[:120],
         }
 

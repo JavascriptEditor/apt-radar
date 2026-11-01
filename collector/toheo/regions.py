@@ -20,6 +20,7 @@ LIST_PATH = (
 )
 
 DONGTAN_KEY = "41590:dongtan"
+UNKNOWN_SUB = "unknown"        # '<시코드>:unknown' = 시 단위 새올의 구 미분류(시 코드가 지역 id 와 겹치는 화성시용)
 
 # 화성시 동탄구 법정동(시 전체 코드로 조회한 단지를 동탄구로 분류할 때 사용)
 DONGTAN_DONGS = {
@@ -48,7 +49,12 @@ class Site:
 
     @property
     def city_code(self) -> str:
-        """구 미분류 민원에 붙일 코드(시 단위 새올은 시 코드, 그 외는 담당 sgg)."""
+        """구 미분류 민원에 붙일 코드(시 단위 새올은 시 코드, 그 외는 담당 sgg).
+
+        화성시처럼 시 코드(41590)가 그 자체로 '동탄 외' 지역 id 이기도 하면 '41590:unknown' 을 써서
+        '구 미분류' 와 '동탄 외' 를 구분한다(그렇지 않으면 부서가 없는 민원이 전부 '동탄 외' 로 확정 표시됨)."""
+        if len(self.sggs) > 1 and self.id in self.sggs:
+            return f"{self.id}:{UNKNOWN_SUB}"
         return self.id
 
 
@@ -139,6 +145,9 @@ def label(sgg: str, live: dict | None = None) -> str:
     """'강남구', '성남 분당구', '화성 동탄구', 시 코드는 '성남시(구 미분류)'."""
     if sgg == DONGTAN_KEY:
         return "화성 동탄구"
+    if sgg.endswith(":" + UNKNOWN_SUB):
+        site = SITE_BY_ID.get(base_code(sgg))
+        return f"{site.name if site else base_code(sgg)}(구 미분류)"
     site = SITE_BY_ID.get(sgg)
     if site and len(site.sggs) > 1 and sgg not in site.sggs:
         return f"{site.name}(구 미분류)"

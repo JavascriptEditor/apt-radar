@@ -20,6 +20,7 @@ from collections import defaultdict
 from .deals import area_group
 from .toheo import designations as dz
 from .toheo import regions as tr
+from .toheo.cases import is_open as _is_open
 
 ZONE_LEVEL = {"full": 2, "partial": 1, "none": 0}
 
@@ -142,9 +143,10 @@ def zone_of(sgg: str, umd: str | None, designations_items, today) -> dict:
 
 # ----------------------------------------------------------------------------- 내림 ↔ 실거래
 
-def _candidate_trades(trades: list[dict], grp, floor, price: int, lo: dt.date, hi: dt.date) -> list[dict]:
+def _candidate_trades(trades: list[dict], grp, floor, price: int, lo: dt.date, hi: dt.date) -> list[tuple[int, dict]]:
+    """조건에 맞는 (trades 안의 인덱스, 거래) 목록. 내용이 같은 거래 두 건도 서로 다른 인덱스로 돌려준다(1:1 배정용)."""
     out = []
-    for t in trades:
+    for i, t in enumerate(trades):
         if grp is not None and t["grp"] is not None and t["grp"] != grp:
             continue
         if floor is not None and t["floor"] is not None and t["floor"] != floor:
@@ -154,7 +156,7 @@ def _candidate_trades(trades: list[dict], grp, floor, price: int, lo: dt.date, h
             continue
         if not (PRICE_LO * price <= t["price"] <= PRICE_HI * price):
             continue
-        out.append(t)
+        out.append((i, t))
     return out
 
 
@@ -164,23 +166,27 @@ def link_gone_to_trades(events: list[dict], trades_by_cid: dict[str, list], toda
     - confirmed : 같은 cid·grp, 층이 둘 다 있으면 같은 층, 계약일 ∈ [goneAt-14d, goneAt+60d], 실거래가 ∈ [0.85, 1.03]×호가.
                   실거래 하나는 내림 하나에만 붙는다(날짜가 가까운 순).
     - relisted  : goneAt 뒤 21일 안에 같은 매물의 relist 이벤트가 있으면(실거래 매칭보다 우선).
+                  같은 날짜의 relist 는 이벤트 파일에서 gone 뒤에 기록된 것만 인정한다(하루 4회 수집이라 같은 날 gone→relist 가 흔함).
     - pending   : 아직 goneAt+75d 이전이고 실거래가 없음.
     - unconfirmed: goneAt+75d 가 지났는데 실거래가 없음.
     반환 행: {id, cid, grp, area, dong, floor, price, date(goneAt), status, trade|None, daysToTrade|None}
     """
     today = _date(today) or dt.date.today()
-    relists: dict[str, list[dt.date]] = defaultdict(list)
-    for e in events:
-        if e.get("event") == "relist":
+    relists: dict[str, list[tuple[dt.date, int]]] = defaultdict(list)     # atclNo → [(날짜, 파일 순서)]
+    gones: list[tuple[dict, int]] = []
+    for pos, e in enumerate(events):
+        kind = e.get("event")
+        if kind == "relist":
             d = _date(e.get("date"))
             if d:
-                relists[str(e.get("atclNo"))].append(d)
-    gones = [e for e in events if e.get("event") == "gone" and _date(e.get("date")) and _int(e.get("price"))]
-    gones.sort(key=lambda e: (e.get("date") or "", str(e.get("atclNo"))))
+                relists[str(e.get("atclNo"))].append((d, pos))
+        elif kind == "gone" and _date(e.get("date")) and _int(e.get("price")):
+            gones.append((e, pos))
+    gones.sort(key=lambda ep: (ep[0].get("date") or "", str(ep[0].get("atclNo")), ep[1]))
     tcache: dict[str, list[dict]] = {}
     rows: list[dict] = []
     pairs: list[tuple[int, int, int, int]] = []      # (|간격|, gone idx, trade idx, 서명 간격)
-    for gi, e in enumerate(gones):
+    for gi, (e, gpos) in enumerate(gones):
         cid = str(e.get("cid") or "")
         gone_at = _date(e.get("date"))
         price = _int(e.get("price"))
@@ -192,15 +198,15 @@ def link_gone_to_trades(events: list[dict], trades_by_cid: dict[str, list], toda
                "dong": str(e.get("dong") or ""), "floor": floor, "price": price, "date": gone_at.isoformat(),
                "status": "pending", "trade": None, "daysToTrade": None}
         rows.append(row)
-        # relist 가 21일 안에 있으면 재등록(팔린 게 아님) — 실거래 매칭보다 우선
-        if any(gone_at < d <= gone_at + dt.timedelta(days=RELIST_DAYS) for d in relists.get(row["id"], [])):
+        # relist 가 21일 안에 있으면 재등록(팔린 게 아님) — 실거래 매칭보다 우선. 같은 날이면 gone 뒤에 온 것만.
+        hi_relist = gone_at + dt.timedelta(days=RELIST_DAYS)
+        if any((gone_at < d <= hi_relist) or (d == gone_at and rpos > gpos) for d, rpos in relists.get(row["id"], [])):
             row["status"] = "relisted"
             continue
         if cid not in tcache:
             tcache[cid] = usable_trades(trades_by_cid.get(cid), today)
         lo, hi = gone_at - dt.timedelta(days=GONE_BEFORE_DAYS), gone_at + dt.timedelta(days=GONE_AFTER_DAYS)
-        for ti, t in enumerate(_candidate_trades(tcache[cid], grp, floor, price, lo, hi)):
-            idx = tcache[cid].index(t)
+        for idx, t in _candidate_trades(tcache[cid], grp, floor, price, lo, hi):
             days = (_date(t["date"]) - gone_at).days
             pairs.append((abs(days), gi, idx, days))
     # 전체에서 간격이 가장 가까운 쌍부터 1:1 로 붙인다(실거래 하나는 내림 하나에만)
@@ -341,10 +347,6 @@ def open_series(cases: list[dict], today, days: int = 30) -> list[int]:
         d = today - dt.timedelta(days=i)
         out.append(sum(1 for r, done in recs if r <= d and (done is None or done > d)))
     return out
-
-
-def _is_open(status: str) -> bool:
-    return any(k in (status or "") for k in ("처리중", "접수", "진행"))
 
 
 # ----------------------------------------------------------------------------- 단지 요약

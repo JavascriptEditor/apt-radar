@@ -55,16 +55,20 @@ fi
 # ---- 3) data 브랜치 worktree (data/ 폴더)
 git worktree prune
 if [ ! -d data/.git ] && [ ! -f data/.git ]; then
-  rm -rf data
-  if git ls-remote --exit-code --heads origin data >/dev/null 2>&1; then
-    git fetch -q origin data:data --update-head-ok 2>/dev/null || git fetch -q origin data
-    git worktree add data data
-  else
+  if ! git ls-remote --exit-code --heads origin data >/dev/null 2>&1; then
     log "원격에 data 브랜치가 없습니다. 먼저 GitHub Actions 에서 수집을 한 번 실행하세요."
     exit 3
   fi
+  if [ -e data ]; then
+    # worktree 가 아닌 data/ 가 이미 있음(로컬 `python -m collector run` 결과 등) → 지우지 않고 옆으로 옮긴다
+    BAK="data.local-$(date '+%Y%m%d-%H%M%S')"
+    log "data/ 가 git worktree 가 아니어서 $BAK 로 옮깁니다 (필요 없으면 직접 지우세요)"
+    mv data "$BAK"
+  fi
+  git fetch -q origin data:data --update-head-ok 2>/dev/null || git fetch -q origin data
+  git worktree add data data
 fi
-( cd data && git fetch -q origin data && git reset -q --hard origin/data )
+( cd data && { git rebase --abort >/dev/null 2>&1 || true; } && git fetch -q origin data && git reset -q --hard origin/data )
 log "data 브랜치: $(cd data && git log -1 --format='%h %cd' --date=short)"
 
 # ---- 4) 가상환경 + 의존성
@@ -74,12 +78,21 @@ if [ ! -x .venv/bin/python ]; then
 fi
 .venv/bin/python -m pip install -q --disable-pip-version-check -r requirements.txt
 
-# ---- 5) 매물 수집
+# ---- 5) 매물 수집 (파이썬 종료코드를 보존: 예외로 죽으면 커밋하지 않고 exit 4)
 log "네이버 매물 수집 시작 (REGION_FILTER=${REGION_FILTER:-전체}, NAVER_MAX_CALLS=${NAVER_MAX_CALLS:-1500})"
-RESULT="$(.venv/bin/python -m collector listings | tail -n 1 || true)"
+set +e
+OUT="$(.venv/bin/python -m collector listings)"
+RC=$?
+set -e
+RESULT="$(printf '%s\n' "$OUT" | tail -n 1)"
 log "결과: $RESULT"
+if [ "$RC" -ne 0 ]; then
+  log "매물 수집이 비정상 종료했습니다(exit $RC). 커밋하지 않습니다 — 위 오류 메시지를 확인하세요."
+  exit 4
+fi
 case "$RESULT" in
   *'"status": "blocked'*) log "네이버가 요청을 막았습니다. 몇 시간 뒤 다시 시도하거나 NAVER_DELAY_SEC 를 늘리세요." ;;
+  *'"status": "skipped'*) log "직전 수집이 최근이라 건너뛰었습니다 (LISTINGS_MIN_INTERVAL_MIN)." ;;
 esac
 
 # ---- 6) 커밋·푸시
@@ -95,7 +108,15 @@ if [ "${NO_PUSH:-0}" = "1" ]; then
   log "NO_PUSH=1: 푸시 생략"
   exit 0
 fi
-# Actions 커밋이 먼저 들어갔으면 그 위에 얹는다(충돌 시 집 PC 결과 우선)
-git pull -q --rebase -X theirs origin data || { git rebase --abort 2>/dev/null || true; }
-git push -q origin HEAD:data
-log "푸시 완료. 다음 Actions 실행이 사이트를 다시 만듭니다 (바로 반영하려면 Actions 에서 mode=export 실행)."
+# Actions 커밋이 먼저 들어갔으면 그 위에 얹는다(충돌 시 집 PC 결과 우선). 실패하면 되돌리고 재시도(최대 3회)
+for i in 1 2 3; do
+  if git pull -q --rebase -X theirs origin data && git push -q origin HEAD:data; then
+    log "푸시 완료. 다음 Actions 실행이 사이트를 다시 만듭니다 (바로 반영하려면 Actions 에서 mode=export 실행)."
+    exit 0
+  fi
+  git rebase --abort 2>/dev/null || true
+  log "푸시 실패($i/3) — 잠시 뒤 다시 시도"
+  sleep $((i * 10))
+done
+log "푸시에 실패했습니다. 커밋은 로컬 data 브랜치에 남아 있으니 다음 실행에서 다시 시도합니다."
+exit 5

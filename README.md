@@ -47,7 +47,8 @@
    | `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | 아니오 | 텔레그램 요약 알림(아래 [알림](#텔레그램-알림-선택)) |
 
 4. **Pages 켜기** — `Settings → Pages → Build and deployment → Source: GitHub Actions`
-5. **첫 실행** — `Actions` 탭 → `APT 레이더 수집` → `Run workflow` (mode `auto`, deep 체크 안 해도 토허 데이터가 없으면 첫 실행은 자동으로 깊게 읽습니다).
+5. **첫 실행** — `Actions` 탭 → `APT 레이더 수집` → `Run workflow` (mode `auto` = 실거래 수집 + 토허 수집. deep 체크 안 해도 토허 데이터가 없으면 첫 실행은 자동으로 깊게 읽습니다.
+   `MOLIT_SERVICE_KEY` 가 없으면 실거래 단계는 경고만 남기고 건너뛰어 토허만 수집됩니다).
    끝나면 `https://<아이디>.github.io/<저장소>/` 에서 열립니다. `Variables` 에 `SITE_URL` 을 그 주소로 넣으면 RSS·알림 링크가 절대 주소가 됩니다.
 
 ### 설치 체크리스트
@@ -103,16 +104,22 @@ powershell -ExecutionPolicy Bypass -File scripts\home_listings.ps1
 
 ### 방법 B. self-hosted runner
 
+> **Public 저장소에서는 쓰지 마세요.** self-hosted runner 는 저장소 단위로 등록되므로, 포크 PR 이 추가한 워크플로(`runs-on: self-hosted`)가
+> 집 PC(git 푸시 자격증명·`NAVER_LAND_TOKEN` 보유)에서 실행될 수 있습니다(GitHub 공식 문서도 공개 저장소에서의 self-hosted runner 를 권장하지 않음).
+> 이 저장소는 Pages 때문에 Public 이 기본이니 **방법 A 를 쓰세요.** 굳이 쓰려면 Private 저장소 + `Settings → Actions → Fork pull request workflows → Require approval for all outside collaborators` + 러너를 별도 사용자/컨테이너/VM 에 격리하세요.
+
 `Settings → Actions → Runners → New self-hosted runner` 로 집 PC 를 등록하면 `.github/workflows/listings-home.yml` 이 그 PC 에서
-하루 4회(10:00·14:00·18:00·22:00 KST) 매물을 수집해 `data` 브랜치에 푸시합니다. Actions 수집(`collect.yml` listings 모드)과 같이 켜 두어도
-되고(둘 다 `listings.csv` 를 소프트 삭제 방식으로 갱신하므로 충돌해도 최신 쪽이 이김), Actions 쪽이 계속 `blocked` 면 `collect.yml` 의 listings cron 을 지워도 됩니다.
+하루 4회(10:00·14:00·18:00·22:00 KST) 매물을 수집해 `data` 브랜치에 푸시합니다. Actions 수집(`collect.yml` listings 모드, 09:40 …)과 같이 켜 두어도
+됩니다: 양쪽 모두 **직전 2시간 안에 성공한 매물 수집이 있으면 건너뛰므로**(`LISTINGS_MIN_INTERVAL_MIN`, 기본 120) 같은 상태기계가 20분 간격으로 두 번 돌아
+'사라진 매물' 판정(연속 2회 미출현)이 앞당겨지는 일은 없고, Actions 가 `blocked` 일 때만 집 PC 가 실제로 수집합니다. 방법 A 의 스크립트도 같은 규칙을 따릅니다.
 
 ### 지켜 주세요
 
 - 요청 간격 0.7초(±30%), 실행당 호출 상한, 단지별 순환으로 부하를 낮춥니다. **주기를 더 촘촘하게 하지 마세요.**
 - 403/429·안내 페이지가 오면 그 실행은 즉시 멈추고 내정보 탭에 `blocked` 로 표시됩니다. 매물 목록은 마지막 성공분이 남고, 단지 페이지의 '매물 직접 판정'은 계속 동작합니다.
 - 주소·필드 이름은 `config/naver.json` 에 있습니다. 구조가 바뀌면 브라우저 Network 탭을 보고 이 파일만 고치면 됩니다. 확인: `python -m collector probe --cortar 1168010300 --complex <단지번호>`
-- 매물 자료는 공개된 호가를 통계 목적으로 읽는 용도이며 개인정보는 저장하지 않습니다(중개사 상호 외). 상업적 이용은 피하세요.
+- 매물 자료는 공개된 호가를 통계 목적으로 읽는 용도입니다. 저장하는 것은 매물번호·동·층·면적·호가·확인일·중개사 상호·태그와 매물 설명 앞 80자(`listings.csv` 의 `desc`, 전화번호·이메일 패턴은 `***` 로 가림)이며,
+  설명은 사이트 데이터로 내보내지 않습니다. `data` 브랜치는 공개되므로 그 밖의 개인정보가 보이면 `config/naver.json` 의 `desc` alias 를 비워 수집을 끄세요. 상업적 이용은 피하세요.
 
 ## 데이터 한계 — 꼭 읽어 주세요
 
@@ -199,7 +206,9 @@ log(가격) = μ[단지·면적그룹] + S[시군구,월] + D[단지,월] + β�
 | `TOHEO_REGION_FILTER` | `REGION_FILTER` 중 토허 대상 | 토허 수집 지역만 따로 (예: `서울`, `11680,41135,41590:dongtan`) |
 | `DAILY_CALL_LIMIT` | 9500 | 국토부 하루 호출 상한 |
 | `MOLIT_API_URL` | 상세 자료 API | 기본 자료 API 키만 있다면 그 주소(동 정보가 없어 동 보정이 안 됨) |
-| `NAVER_MAX_CALLS` / `NAVER_DELAY_SEC` | 1500 / 0.7 | 매물 수집 실행당 호출 상한 / 요청 간격(초) |
+| `NAVER_MAX_CALLS` / `NAVER_DELAY_SEC` | 1500 / 0.7 | 매물 수집 실행당 호출 상한 / 요청 간격(초). 상한에 걸리면 `partial`(차단 아님) |
+| `LISTINGS_MIN_INTERVAL_MIN` | 0 (워크플로·집 PC 는 120) | 직전 성공 매물 수집이 이 분 안이면 건너뜀(`skipped`). Actions·집 PC 이중 수집 방지 |
+| `TRADES_MAX_SEC` | 0 (워크플로는 6000) | 실거래 적재 시간 상한(초). 다음 예약 실행이 대기열에서 취소되지 않게 100분 안에 끝냄 |
 | `MATCH_MAX_DONGS` | 400 | 단지 매칭 실행당 법정동 수 |
 | `TOHEO_DELAY_SEC` | 0.8 | 새올·서울시 요청 간격(초). 줄이지 마세요 |
 | `LIGHT_DAYS` / `DEEP_DAYS` | 2 / 45 | 가벼운/깊은 토허 수집이 거슬러 읽는 접수일 범위 |
@@ -212,7 +221,10 @@ Secrets: `MOLIT_SERVICE_KEY`(필수), `NAVER_LAND_TOKEN`·`TELEGRAM_BOT_TOKEN`·
 
 수집 시각은 `.github/workflows/collect.yml` 의 `cron`(UTC)에서 바꿉니다. 기본(KST): 실거래 06:10·20:10, 매물 09:40·13:40·17:40·21:40,
 토허 짝수시 10분(가벼운 수집, **20:10 은 깊은 수집**; 06:10·20:10 은 실거래 실행 안에서 이어 돕니다). 모든 실행 끝에 사이트 데이터 생성 → `data` 브랜치 커밋 → Pages 배포.
-수동 실행(`Run workflow`)의 mode: `auto`(시각에 따라) / `trades` / `listings` / `toheo`(+ `deep`) / `export`(사이트만 다시) / `model` / `scan`.
+수동 실행(`Run workflow`)의 mode: `auto`(예약 실행 시각에 따라; 수동이면 실거래 + 토허) / `trades` / `listings` / `toheo`(+ `deep`) / `export`(사이트만 다시) / `model` / `scan`.
+모든 실행이 한 `concurrency` 그룹을 쓰므로 실행이 겹치면 **대기열에는 1개만 남고 그 전에 대기하던 실행은 취소**됩니다(Actions 목록에 `cancelled`). 그래서 실거래 적재는
+`TRADES_MAX_SEC`(기본 100분)로 끊어 다음 예약과 겹치지 않게 했습니다. 수집 스텝이 예외로 죽으면 export·커밋·배포는 그대로 진행하고(진행 상황·호출 수 보존)
+마지막 스텝이 job 을 실패로 표시하며, 내정보 탭의 상태가 `error: …` 로 바뀝니다.
 
 설정 파일(`config/`): `naver.json`(네이버 주소·필드), `designations.json`(지정 현황, 직접 관리), `seoul_permits.json`(서울 허가 조회 요청),
 `saeol_params.example.json`(새올 페이지 파라미터 수동 지정), `alerts.example.json`(알림).
@@ -252,10 +264,11 @@ tests/                         가짜 국토부·네이버·새올·서울시 �
 ```bash
 pip install -r requirements.txt            # requests, numpy 뿐
 export MOLIT_SERVICE_KEY=발급받은키 REGION_FILTER=11680        # 강남구만 빠르게
+export DATA_DIR=$HOME/apt-data             # 로컬 수집 데이터 위치. 저장소 안 data/ 는 집 PC 스크립트가 data 브랜치 worktree 로 쓰는 자리라 분리 권장
 python -m collector run --partial          # 실거래 재조회·적재 + 모델 + 단지 매칭
 python -m collector listings               # 네이버 매물 (집 PC 에서)
 python -m collector toheo --deep           # 새올 + 서울 허가 (MOLIT 키 없이도 동작, 단지 매칭만 비어 있음)
-python -m collector export --out site      # 사이트 데이터 (+ --notify 로 텔레그램)
+python -m collector export --out site      # 사이트 데이터 (+ --notify 로 텔레그램). --out 은 DATA_DIR 과 겹치면 안 됨(겹치면 거부)
 cd site && python -m http.server 8000      # http://localhost:8000
 ```
 

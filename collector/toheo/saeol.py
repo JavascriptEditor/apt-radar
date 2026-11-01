@@ -195,6 +195,16 @@ class SaeolClient:
             return cfg
         cfg["page_size"] = len(first_rows) or None
         first_nos = {r.no for r in first_rows}
+        total = cfg.get("total")
+        if first_rows and total is not None and total <= len(first_rows):
+            # 목록이 한 페이지뿐이라 페이지 파라미터를 판정할 수 없음. 총 건수가 늘어 2페이지가 생기면
+            # fetch() 가 stale 을 세워 다시 탐지한다(영구 캐시 방지).
+            cfg["page_param"] = None
+            cfg["single_page"] = True
+            cfg["checked_total"] = total
+            cfg["warning"] = None
+            self.params[site.id] = cfg
+            return cfg
         # 2) 페이지 파라미터
         for method in ("GET", "POST"):
             for cand in PAGE_PARAMS:
@@ -251,6 +261,13 @@ class SaeolClient:
                 info["error"] = f"{page}페이지 실패: {e}"
                 break
             info["pages"] = page
+            if page == 1 and rows and cfg.get("page_size") and total and len(rows) < total and len(rows) != cfg["page_size"]:
+                # 서버가 더는 size 파라미터를 따르지 않거나 페이지 크기가 바뀜 → 실제 행 수로 보정하고 다음 실행에서 재탐지.
+                # (옛 page_size 로 total_pages 를 계산하면 1페이지만 읽고 '끝까지 읽음' 으로 오판해 처리중 민원이
+                #  '완료(목록이탈)' 로 둔갑한다)
+                cfg["page_size"] = len(rows)
+                cfg["stale"] = True
+                info["warning"] = f"페이지 크기가 {len(rows)}행으로 바뀌어 다음 실행에서 파라미터를 다시 탐지합니다"
             if total and cfg.get("page_size"):
                 total_pages = -(-total // cfg["page_size"])
             new = [r for r in rows if r.no not in seen]
@@ -272,10 +289,18 @@ class SaeolClient:
                 info["reached_cutoff"] = True
                 break
             if not cfg.get("page_param"):
+                if total is not None and info["rows"] >= total:
+                    info["reached_cutoff"] = True          # 목록 전체가 한 페이지에 들어옴
+                elif total is not None and total > info["rows"]:
+                    # 단일 페이지로 판정했던 사이트의 목록이 늘어남 → 다음 실행에서 페이지 파라미터 재탐지
+                    cfg["stale"] = True
+                    info["warning"] = f"목록이 {total}건으로 늘어 다음 실행에서 페이지 파라미터를 다시 탐지합니다"
                 break
             if total_pages and page >= total_pages:
-                info["reached_cutoff"] = True
-                break
+                # 마지막 페이지 판정은 실제 행 수로 한 번 더 확인(총 건수를 다 읽었거나 마지막 페이지가 덜 찬 경우)
+                if (total is not None and info["rows"] >= total) or len(rows) < cfg["page_size"]:
+                    info["reached_cutoff"] = True
+                    break
             page += 1
         info["toheo_rows"] = len(out)
         return out, info

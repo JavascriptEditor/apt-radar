@@ -3,9 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#F6F7F5">
+<meta name="theme-color" content="#F6F7F5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F1419" media="(prefers-color-scheme: dark)">
 <meta name="description" content="수도권 아파트 매물이 기준가 대비 얼마나 싼지(급매판정)와 토지거래허가 소식·처리 현황(토허제 라이브)을 한 곳에서. 20년 실거래로 동·층·타입을 보정한 가치판정 + 허가 파이프라인.">
 <title>APT 레이더 — 급매판정 · 토허제 라이브</title>
+<link rel="icon" href="data:,">
 <link rel="alternate" type="application/rss+xml" title="새 급매" href="feed/all.xml">
 <link rel="alternate" type="application/rss+xml" title="토지거래허가 소식" href="feed/toheo/all.xml">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
@@ -16,6 +18,7 @@
   --r:10px; --tab:60px;
   --warn-bg:#FFF7D6; --warn-line:#F1E2A0; --warn-ink:#8A6D1A; --ok-bg:#E6F4EC; --toheo:#1F6F5B; --toheo-bg:#E6F2EE; --s2:#C2410C;
   --top-bg:rgba(246,247,245,.92); --card-active:#FAFBFA;
+  --on-ink:#FFFFFF; /* --ink 배경 위 글자색 (다크에서는 --ink 가 밝아지므로 어두운 색) */
   color-scheme:light;
 }
 /* 다크모드: 토허 원본처럼 prefers-color-scheme 토큰. data-theme 로 강제 가능 */
@@ -24,14 +27,14 @@
     --paper:#0F1419; --panel:#171D25; --ink:#E6E8EB; --ink2:#C3C9D1; --mute:#9AA3AD; --line:#2A323D; --line2:#1F2731;
     --cheap:#6D9BFF; --cheap-bg:#13213A; --dear:#F87171; --dear-bg:#2B1515; --hi:#8A6A00; --ok:#4ADE80;
     --warn-bg:#2A2010; --warn-line:#5A4A1A; --warn-ink:#F5C04A; --ok-bg:#0F2A19; --toheo:#3FA58A; --toheo-bg:#1C2F29; --s2:#FB923C;
-    --top-bg:rgba(15,20,25,.92); --card-active:#1F2731; color-scheme:dark;
+    --top-bg:rgba(15,20,25,.92); --card-active:#1F2731; --on-ink:#0F1419; color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --paper:#0F1419; --panel:#171D25; --ink:#E6E8EB; --ink2:#C3C9D1; --mute:#9AA3AD; --line:#2A323D; --line2:#1F2731;
   --cheap:#6D9BFF; --cheap-bg:#13213A; --dear:#F87171; --dear-bg:#2B1515; --hi:#8A6A00; --ok:#4ADE80;
   --warn-bg:#2A2010; --warn-line:#5A4A1A; --warn-ink:#F5C04A; --ok-bg:#0F2A19; --toheo:#3FA58A; --toheo-bg:#1C2F29; --s2:#FB923C;
-  --top-bg:rgba(15,20,25,.92); --card-active:#1F2731; color-scheme:dark;
+  --top-bg:rgba(15,20,25,.92); --card-active:#1F2731; --on-ink:#0F1419; color-scheme:dark;
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
@@ -69,20 +72,25 @@ nav.tabs a .dot.on{display:block}
 .chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none;-ms-overflow-style:none}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:none;border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:6px 12px;font-size:13px;font-weight:600;color:var(--ink2)}
-.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.chip.on{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
 .filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .filters select,.filters input{height:32px;border:1px solid var(--line);border-radius:8px;background:var(--panel);padding:0 8px;font-size:13px}
 .filters label.tg{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--ink2);height:32px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
 .sum{color:var(--mute);font-size:13px;margin:4px 0 10px}
 .list{display:flex;flex-direction:column;gap:8px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px 12px 10px;display:grid;grid-template-columns:92px 1fr;gap:12px;align-items:start;text-decoration:none}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px 12px 10px;display:grid;grid-template-columns:92px 1fr;gap:12px;align-items:start;text-decoration:none;position:relative}
 .card:active{background:var(--card-active)}
+/* 카드 전체를 덮는 링크(버튼은 <a> 안에 두지 않고 z-index 로 위에 올린다 — 빗나간 터치가 페이지 이동이 되지 않게) */
+.card a.go{position:absolute;inset:0;z-index:0;border-radius:inherit}
+.card a.go:focus-visible{outline:2px solid var(--cheap);outline-offset:1px}
+.card .acts,.card .body a{position:relative;z-index:1}
 .verdict{display:flex;flex-direction:column;align-items:flex-start;gap:4px}
 .pct{font-weight:800;font-size:26px;line-height:1;letter-spacing:-.03em;padding:2px 6px 0;position:relative;display:inline-block}
 .pct.cheap{color:var(--cheap)} .pct.dear{color:var(--dear)} .pct.even{color:var(--ink2)}
 .pct.hi::before{content:"";position:absolute;left:0;right:0;top:55%;height:12px;background:var(--hi);z-index:-1;border-radius:2px;transform:rotate(-1.5deg)}
 .pct{z-index:0}
-.grade{display:inline-block;font-size:11px;font-weight:800;padding:2px 6px;border-radius:4px;background:var(--ink);color:#fff;line-height:1.3}
+.grade{display:inline-block;font-size:11px;font-weight:800;padding:2px 6px;border-radius:4px;background:var(--ink);color:var(--on-ink);line-height:1.3}
+.grade.SS,.grade.S,.grade.A,.grade.B,.grade.C{color:#fff}
 .grade.SS{background:var(--cheap)} .grade.S{background:#3D6FD6} .grade.A{background:#6B8CD0} .grade.B{background:#9AA1AA} .grade.C{background:var(--dear)}
 .grade.none{background:var(--line);color:var(--mute)}
 .grade.toheo{background:var(--toheo)}
@@ -98,9 +106,9 @@ nav.tabs a .dot.on{display:block}
 .card .foot{margin-top:6px;display:flex;gap:8px;align-items:center;font-size:11.5px;color:var(--mute);flex-wrap:wrap}
 .card .foot .tag{border:1px solid var(--line);border-radius:4px;padding:0 5px}
 .card .foot .direct{color:var(--dear);border-color:var(--dear-bg);background:var(--dear-bg)}
-.card .acts{margin-left:auto;display:flex;gap:4px}
-.card .acts button{border:1px solid var(--line);background:var(--panel);border-radius:6px;font-size:11px;padding:2px 7px;color:var(--ink2)}
-.card .acts button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.card .acts{margin-left:auto;display:flex;gap:6px}
+.card .acts button{border:1px solid var(--line);background:var(--panel);border-radius:6px;font-size:12px;padding:6px 10px;min-height:32px;color:var(--ink2)}
+.card .acts button.on{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
 .empty{padding:40px 12px;text-align:center;color:var(--mute);font-size:14px;background:var(--panel);border:1px dashed var(--line);border-radius:var(--r)}
 .empty b{display:block;color:var(--ink);margin-bottom:4px}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:10px}
@@ -126,7 +134,7 @@ nav.tabs a .dot.on{display:block}
 .cx-head .sub{color:var(--mute);font-size:13px;margin-top:2px}
 .cx-head .acts{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
 .btn{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 12px;font-size:13px;font-weight:600;color:var(--ink2);text-decoration:none;display:inline-flex;align-items:center;gap:5px}
-.btn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.on{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
 .btn.primary{background:var(--cheap);color:#fff;border-color:var(--cheap)}
 .btn:disabled{opacity:.5;cursor:default}
 .fairs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
@@ -160,7 +168,7 @@ svg.chart{width:100%;height:auto;display:block}
 .cmp th,.cmp td{padding:6px 4px;border-bottom:1px solid var(--line2);text-align:left;vertical-align:top}
 .cmp th{color:var(--mute);font-weight:600;font-size:12px}
 .cmp td.r{text-align:right;font-weight:600}
-.cmp .rm{border:0;background:none;color:var(--mute);font-size:12px;padding:0}
+.cmp .rm{border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--mute);font-size:12px;padding:6px 8px;min-width:44px;min-height:32px;flex:none}
 .citem{border:1px solid var(--line);border-radius:var(--r);padding:10px 12px}
 .citem.gone{opacity:.55}
 .citem .ct{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
@@ -177,7 +185,7 @@ svg.chart{width:100%;height:auto;display:block}
 .prog i{display:block;height:100%;background:var(--cheap)}
 .alert-new{border-left:3px solid var(--cheap)}
 .warn{background:var(--warn-bg);border:1px solid var(--warn-line);border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:10px}
-.toast{position:fixed;left:50%;bottom:calc(var(--tab) + 16px);transform:translateX(-50%);background:var(--ink);color:#fff;padding:8px 14px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:40}
+.toast{position:fixed;left:50%;bottom:calc(var(--tab) + 16px);transform:translateX(-50%);background:var(--ink);color:var(--on-ink);padding:8px 14px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:40}
 .toast.on{opacity:1}
 .spark{height:40px}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px}
@@ -222,6 +230,11 @@ svg.chart{width:100%;height:auto;display:block}
 .strip .dzs{flex:none;font-size:12px;padding:6px 10px;border-radius:8px;background:var(--panel);border:1px solid var(--line);color:var(--ink);text-align:left}
 .dzc{border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;margin-bottom:8px;background:var(--panel)}
 .dzc .t{font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:14px}
+.dzc button.t{width:100%;text-align:left;border:0;background:none;padding:0;cursor:pointer;color:inherit}
+.dzc button.t::after{content:"펼치기";margin-left:auto;font-size:11px;font-weight:500;color:var(--mute)}
+.dzc.open button.t::after{content:"접기"}
+.dzc button.t:focus-visible{outline:2px solid var(--cheap);outline-offset:2px;border-radius:4px}
+svg.chart rect.hit:focus{outline:none;stroke:var(--cheap);stroke-width:1.5}
 .dzc .meta{font-size:12px;color:var(--mute);margin-top:3px} .dzc .tg{font-size:13px;margin-top:5px;color:var(--ink2)}
 .dzc .more{font-size:12px;color:var(--mute);margin-top:5px;display:none} .dzc.open .more{display:block}
 .ok{color:var(--ok)} .ng{color:var(--dear)}
@@ -301,11 +314,16 @@ const LS = {
   get(k, d) { try { const v = localStorage.getItem('gm.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('gm.' + k, JSON.stringify(v)); } catch (e) {} },
 };
+// 해시(fragment)의 한글은 브라우저가 퍼센트 인코딩해 돌려주므로 cid 는 항상 디코딩해서 쓴다(관심 단지·비교함 키가 어긋나지 않게)
+const dec = (s) => { try { return decodeURIComponent(String(s == null ? '' : s)); } catch (e) { return String(s == null ? '' : s); } };
 const S = {
   status: null, index: null, idxById: null, trend: null, top: null,
   fav: LS.get('fav', []), cmp: LS.get('cmp', []), seen: LS.get('seen', {}), set: Object.assign({ price: 'a', area: 'm2', chip: '' }, LS.get('set', {})),
   cache: {}, lcache: {}, chip: LS.get('set', {}).chip || '',
 };
+// 예전 버전이 인코딩된 채 저장해 둔 관심 단지·비교함 항목을 1회 정규화
+S.fav = [...new Set((Array.isArray(S.fav) ? S.fav : []).map(dec).filter(Boolean))];
+S.cmp = (Array.isArray(S.cmp) ? S.cmp : []).filter(x => x && x.id).map(x => ({ ...x, cid: dec(x.cid) }));
 const $ = (s, el = document) => el.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const toast = (m) => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('on'), 1600); };
@@ -352,7 +370,8 @@ function listingCard(l, opt = {}) {
   const spec = [l.dongRaw, fmtArea(l.area, l.grp), l.floor != null ? `${l.floor}${l.top ? '/' + l.top : ''}층` : ''].filter(Boolean).join(' ');
   const why = l.fair ? (l.reasons && l.reasons.length ? l.reasons.slice(0, 2).map(r => l.royal && /동 보정/.test(r) ? `<span class="royal">${esc(r)}</span>` : esc(r)).join(' · ') : '동·층·타입 보정 없음') : '기준가 없음 (거래 이력 부족 또는 적재 중)';
   const inCmp = S.cmp.some(x => x.id === l.id);
-  return `<a class="card" href="#c-${esc(l.cid)}" data-id="${esc(l.id)}">
+  // 카드는 <div>, 단지 링크는 카드 전체를 덮는 별도 <a class="go"> (버튼을 <a> 안에 중첩하지 않음)
+  return `<div class="card" data-id="${esc(l.id)}"><a class="go" href="#c-${esc(l.cid)}" aria-label="${esc(l.name || '')} 단지 페이지"></a>
     <div class="verdict">
       <span class="pct ${cls}${hi ? ' hi' : ''}">${l.fair ? fmtPct(l.diff) : '—'}</span>
       <span>${gradeHtml(l)}</span>
@@ -364,9 +383,9 @@ function listingCard(l, opt = {}) {
       <div class="price">${fmtPrice(l.price)}${l.fair ? `<span class="fv">기준가 ${fmtPrice(l.fair)} (${l.diffAmt >= 0 ? '+' : ''}${fmtPrice(l.diffAmt)})</span>` : ''}</div>
       <div class="why">${why}</div>
       <div class="foot">${l.confirm ? `<span>확인 ${fmtDate(l.confirm)}</span>` : ''}${l.direct ? '<span class="tag direct">직거래</span>' : ''}${toheoTag(l)}${l.sameCnt > 1 ? `<span class="tag">중개사 ${l.sameCnt}</span>` : ''}${(l.tags || []).slice(0, 2).map(t => `<span class="tag">${esc(t)}</span>`).join('')}
-        <span class="acts"><button type="button" data-cmp="${esc(l.id)}" class="${inCmp ? 'on' : ''}">${inCmp ? '비교함 ✓' : '비교'}</button><button type="button" data-open="${esc(l.url)}">네이버</button></span>
+        <span class="acts"><button type="button" data-cmp="${esc(l.id)}" class="${inCmp ? 'on' : ''}" aria-pressed="${inCmp}">${inCmp ? '비교함 ✓' : '비교'}</button><button type="button" data-open="${esc(l.url)}">네이버</button></span>
       </div>
-    </div></a>`;
+    </div></div>`;
 }
 document.addEventListener('click', (e) => {
   const b = e.target.closest('button[data-cmp],button[data-open]');
@@ -374,12 +393,11 @@ document.addEventListener('click', (e) => {
   e.preventDefault(); e.stopPropagation();
   if (b.dataset.open) { window.open(b.dataset.open, '_blank', 'noopener'); return; }
   const id = b.dataset.cmp;
-  const card = b.closest('.card');
   const l = findListing(id);
   if (!l) return;
   const i = S.cmp.findIndex(x => x.id === id);
-  if (i >= 0) { S.cmp.splice(i, 1); b.classList.remove('on'); b.textContent = '비교'; toast('비교함에서 뺐어요'); }
-  else { if (S.cmp.length >= 12) { toast('비교함은 12건까지'); return; } S.cmp.push(l); b.classList.add('on'); b.textContent = '비교함 ✓'; toast('비교함에 담았어요'); }
+  if (i >= 0) { S.cmp.splice(i, 1); b.classList.remove('on'); b.setAttribute('aria-pressed', 'false'); b.textContent = '비교'; toast('비교함에서 뺐어요'); }
+  else { if (S.cmp.length >= 12) { toast('비교함은 12건까지'); return; } S.cmp.push(l); b.classList.add('on'); b.setAttribute('aria-pressed', 'true'); b.textContent = '비교함 ✓'; toast('비교함에 담았어요'); }
   LS.set('cmp', S.cmp);
 });
 const L = {}; // id → listing (화면에 보인 것)
@@ -389,14 +407,14 @@ function remember(ls) { for (const l of ls) L[l.id] = l; }
 // ------------------------------------------------------------ 라우팅
 const views = ['explore', 'complex', 'toheo', 'alerts', 'compare', 'trend', 'me'];
 function route() {
-  const h = location.hash.slice(1) || 'explore';
+  const h = dec(location.hash.slice(1)) || 'explore';
   let tab = h, cid = null, sgg = null;
   if (h.startsWith('c-')) { tab = 'complex'; cid = h.slice(2); }
   else if (h.startsWith('toheo-r-')) { tab = 'toheo'; sgg = h.slice(8); }
-  else if (h.startsWith('toheo-')) { tab = 'toheo'; TH.sub = h.slice(6) || TH.sub; }
+  else if (h.startsWith('toheo-')) { tab = 'toheo'; const sub = h.slice(6); if (TH_SUBS.some(([k]) => k === sub)) TH.sub = sub; }
   if (!views.includes(tab)) tab = 'explore';
   views.forEach(v => $('#v-' + v).classList.toggle('on', v === tab));
-  document.querySelectorAll('nav.tabs a').forEach(a => a.classList.toggle('on', a.dataset.tab === tab));
+  document.querySelectorAll('nav.tabs a').forEach(a => { const on = a.dataset.tab === tab; a.classList.toggle('on', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   window.scrollTo(0, 0);
   ({ explore: renderExplore, complex: () => renderComplex(cid), toheo: () => renderToheo(sgg), alerts: renderAlerts, compare: renderCompare, trend: renderTrend, me: renderMe })[tab]();
 }
@@ -434,7 +452,7 @@ function onSearch() {
     const ql = q.toLowerCase();
     const hits = S.index.filter(c => (c.name + c.umd + sggShort(c.sgg)).replace(/\s+/g, '').toLowerCase().includes(ql))
       .sort((a, b) => (b.hasModel - a.hasModel) || (b.nListings - a.nListings) || ((b.households || 0) - (a.households || 0))).slice(0, 30);
-    box.innerHTML = hits.length ? hits.map(c => `<button type="button" data-cid="${esc(c.cid)}"><span class="nm">${esc(c.name)}</span><span>${esc(sggShort(c.sgg))} ${esc(c.umd)}</span><span class="meta">${c.buildYear}년${c.households ? ' ' + c.households + '세대' : ''}${c.nListings ? ' 매물 ' + c.nListings : ''}</span></button>`).join('')
+    box.innerHTML = hits.length ? hits.map(c => `<button type="button" data-cid="${esc(c.cid)}"><span class="nm">${esc(c.name)}</span><span>${esc(sggShort(c.sgg))} ${esc(c.umd)}</span><span class="meta">${esc(c.buildYear)}년${c.households ? ' ' + c.households + '세대' : ''}${c.nListings ? ' 매물 ' + c.nListings : ''}</span></button>`).join('')
       : `<button type="button" disabled><span class="nm">검색 결과 없음</span></button>`;
     box.classList.add('on');
     box.querySelectorAll('button[data-cid]').forEach(b => b.addEventListener('click', () => { box.classList.remove('on'); $('#q').value = ''; location.hash = 'c-' + b.dataset.cid; }));
@@ -533,7 +551,7 @@ async function renderComplex(cid) {
   try { c = await json(`data/c/${cid}.json`); } catch (e) {
     await loadIndex().catch(() => {});
     const ic = S.idxById && S.idxById[cid];
-    v.innerHTML = `<div class="empty"><b>${ic ? esc(ic.name) : '이 단지'}는 아직 기준가가 없어요</b>${ic ? `${esc(sggShort(ic.sgg))} ${esc(ic.umd)} · ${ic.buildYear}년 · 거래 ${ic.n}건` : ''}<br>거래 이력이 8건 미만이거나 이 지역 적재가 아직 진행 중입니다.</div>`;
+    v.innerHTML = `<div class="empty"><b>${ic ? esc(ic.name) : '이 단지'}는 아직 기준가가 없어요</b>${ic ? `${esc(sggShort(ic.sgg))} ${esc(ic.umd)} · ${esc(ic.buildYear)}년 · 거래 ${ic.n}건` : ''}<br>거래 이력이 8건 미만이거나 이 지역 적재가 아직 진행 중입니다.</div>`;
     return;
   }
   const m = c.model;
@@ -564,7 +582,7 @@ async function renderComplex(cid) {
   const chart = m && c.T36 && c.T36.length > 2 ? indexChart(c.months36, [{ name: c.name, v: c.T36, color: 'var(--cheap)' }, { name: c.sggName, v: c.S36, color: 'var(--mute)' }]) : '';
   v.innerHTML = `<div class="cx-head">
     <h1>${esc(c.name)} <button type="button" class="btn ${isFav ? 'on' : ''}" id="favBtn">${isFav ? '★ 관심' : '☆ 관심'}</button></h1>
-    <div class="sub">${esc(c.sggName)} ${esc(c.umd)} ${esc(c.jibun)} · ${c.buildYear}년${c.households ? ` · ${c.households}세대` : ''}${c.highFloor ? ` · 최고 ${c.highFloor}층` : ''} · 거래 ${c.nTrades}건 ${zoneBadge(c.toheo && c.toheo.zone)}</div>
+    <div class="sub">${esc(c.sggName)} ${esc(c.umd)} ${esc(c.jibun)} · ${esc(c.buildYear)}년${c.households ? ` · ${c.households}세대` : ''}${c.highFloor ? ` · 최고 ${c.highFloor}층` : ''} · 거래 ${c.nTrades}건 ${zoneBadge(c.toheo && c.toheo.zone)}</div>
     <div class="acts">${c.naverUrl ? `<a class="btn" href="${esc(c.naverUrl)}" target="_blank" rel="noopener">네이버 매물</a>` : ''}<a class="btn" href="feed/c/${esc(cid)}.xml">RSS</a><button type="button" class="btn" id="copyBtn">텍스트 복사</button></div>
   </div>
   <div class="panel"><h2>기준가 <small>${m ? `${fmtYm(c.now)} 기준, 동·층 보정 전` : ''}</small></h2>${fairHtml}</div>
@@ -690,7 +708,7 @@ async function renderCompare() {
       <div class="ct"><div><a href="#c-${esc(l.cid)}"><b>${esc(l.name)}</b></a><div class="note">${esc(sggShort(l.sgg))} ${esc(l.dongRaw || '')} ${fmtArea(l.area, l.grp)} ${l.floor != null ? l.floor + '층' : ''}${l.gone ? ' · 지금은 없는 매물' : ''}</div></div>
         <div class="cv"><span class="pct ${!l.fair ? 'even' : l.diff <= -0.02 ? 'cheap' : l.diff >= 0.02 ? 'dear' : 'even'}" style="font-size:22px">${l.fair ? fmtPct(l.diff) : '—'}</span>${gradeHtml(l)}</div></div>
       <div class="cg">${cell('호가', fmtPrice(l.price))}${cell('기준가', l.fair ? fmtPrice(l.fair) : '-')}${cell('평당', py(l) ? fmtPrice(py(l)) : '-')}${cell('차액', l.fair ? (l.diffAmt >= 0 ? '+' : '') + fmtPrice(l.diffAmt) : '-')}</div>
-      <div class="cf"><span class="note">${(l.reasons || []).join(' · ') || '보정 없음'}</span><button type="button" class="rm" data-rm="${esc(l.id)}">빼기</button></div></div>`).join('')}</div></div>
+      <div class="cf"><span class="note">${(l.reasons || []).map(esc).join(' · ') || '보정 없음'}</span><button type="button" class="rm" data-rm="${esc(l.id)}" aria-label="${esc(l.name || '')} 비교함에서 빼기">빼기</button></div></div>`).join('')}</div></div>
     <div class="panel"><h2>단지끼리 비교 <small>평형별 기준가</small></h2>${cxCompareTable(pages.filter(Boolean))}</div>`;
   $('#cmpClear').addEventListener('click', () => { S.cmp = []; LS.set('cmp', S.cmp); renderCompare(); });
   v.querySelectorAll('button[data-rm]').forEach(b => b.addEventListener('click', () => { S.cmp = S.cmp.filter(x => x.id !== b.dataset.rm); LS.set('cmp', S.cmp); renderCompare(); }));
@@ -698,7 +716,7 @@ async function renderCompare() {
 function cxCompareTable(pages) {
   const grps = [...new Set(pages.flatMap(p => p.model ? Object.keys(p.model.groups) : []))].sort((a, b) => +a - +b);
   if (!grps.length) return '<div class="note">기준가가 있는 단지가 없어요.</div>';
-  return `<div class="cmp" style="overflow-x:auto"><table><thead><tr><th>단지</th>${grps.map(g => `<th class="r">${fmtArea(null, +g)}</th>`).join('')}<th class="r">1층</th><th class="r">동 차이</th></tr></thead><tbody>${pages.map(p => `<tr><td><a href="#c-${esc(p.cid)}"><b>${esc(p.name)}</b></a><br><span class="note">${esc(p.sggName)} ${p.buildYear}년</span></td>${grps.map(g => { const x = p.model && p.model.groups[g]; return `<td class="r">${x ? fmtPrice(x.fair) : '-'}</td>`; }).join('')}<td class="r">${p.model ? fmtPct(p.model.floor.f1) : '-'}</td><td class="r">${p.model && p.model.royal && p.model.royal.spread != null ? fmtPct(p.model.royal.spread) : '-'}</td></tr>`).join('')}</tbody></table></div>`;
+  return `<div class="cmp" style="overflow-x:auto"><table><thead><tr><th>단지</th>${grps.map(g => `<th class="r">${fmtArea(null, +g)}</th>`).join('')}<th class="r">1층</th><th class="r">동 차이</th></tr></thead><tbody>${pages.map(p => `<tr><td><a href="#c-${esc(p.cid)}"><b>${esc(p.name)}</b></a><br><span class="note">${esc(p.sggName)} ${esc(p.buildYear)}년</span></td>${grps.map(g => { const x = p.model && p.model.groups[g]; return `<td class="r">${x ? fmtPrice(x.fair) : '-'}</td>`; }).join('')}<td class="r">${p.model ? fmtPct(p.model.floor.f1) : '-'}</td><td class="r">${p.model && p.model.royal && p.model.royal.spread != null ? fmtPct(p.model.royal.spread) : '-'}</td></tr>`).join('')}</tbody></table></div>`;
 }
 
 // ------------------------------------------------------------ 트렌드
@@ -735,7 +753,7 @@ function stackChart(st) {
   const path = (arr, color, dash) => `<path d="${arr.map((x, i) => x == null ? '' : (i === 0 || arr[i - 1] == null ? 'M' : 'L') + X(i).toFixed(1) + ' ' + Y(x).toFixed(1)).join(' ')}" fill="none" stroke="${color}" stroke-width="2" ${dash ? 'stroke-dasharray="4 3"' : ''}/>` + (n <= 3 ? arr.map((x, i) => x == null ? '' : `<circle cx="${X(i).toFixed(1)}" cy="${Y(x).toFixed(1)}" r="4" fill="${color}"/>`).join('') : '');
   const xl = [0, n - 1].filter((v, i, a) => a.indexOf(v) === i).map(i => `<text x="${X(i)}" y="${h - 6}" font-size="17" fill="var(--mute)" text-anchor="${i === 0 ? 'start' : 'end'}">${fmtDate(st.dates[i])}</text>`).join('');
   const yl = [0, hi / 2, hi].map(t => `<text x="${p.l - 4}" y="${Y(t) + 3}" font-size="17" fill="var(--mute)" text-anchor="end">${t.toFixed(0)}%</text><line x1="${p.l}" x2="${w - p.r}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--line2)"/>`).join('');
-  return `<svg class="chart" viewBox="0 0 ${w} ${h}">${yl}${path(ratioA, '#6B8CD0', true)}${path(ratio, 'var(--cheap)')}${xl}</svg><div class="legend"><span><i style="background:var(--cheap)"></i>SS·S</span><span><i style="background:#6B8CD0"></i>A 이상</span><span>오늘 판정 ${(tot.n[n - 1] || 0).toLocaleString()}건</span></div>`;
+  return `<svg class="chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="급매 비율 추이 차트">${yl}${path(ratioA, '#6B8CD0', true)}${path(ratio, 'var(--cheap)')}${xl}</svg><div class="legend"><span><i style="background:var(--cheap)"></i>SS·S</span><span><i style="background:#6B8CD0"></i>A 이상</span><span>오늘 판정 ${(tot.n[n - 1] || 0).toLocaleString()}건</span></div>`;
 }
 
 // ------------------------------------------------------------ 내정보
@@ -762,7 +780,7 @@ function renderMe() {
       <details style="margin-top:8px"><summary class="note">조회 지역 ${st.codes.length}곳</summary><div class="note">${st.codes.map(c => `${esc(c.short)}${c.live ? ' (자동 탐색)' : ''}`).join(', ')}</div></details>` : '<div class="note">아직 데이터가 없어요.</div>'}</div>
     <div class="panel"><h2>판정 방식</h2><div class="note">
       <p>기준가 = 그 단지·평형의 2006년 이후 모든 매매에서 <b>시점(시군구 지수 + 단지 편차)·동·층·타입</b> 효과를 회귀로 분리한 뒤, 지금 시점·중층·평균 동으로 되돌린 값. 매물의 동·층·타입을 넣어 보정한 기준가와 호가를 비교합니다.</p>
-      <p>등급: SS ≤ −8%, S ≤ −5%, A ≤ −2%, B ±2%, C &gt; +2%. 거래 15건 미만이거나 최근 거래가 없으면 '표본 부족'.</p>
+      <p>등급: SS ≤ −8%, S ≤ −5%, A ≤ −2%, B ±2%, C &gt; +2%. 신뢰도는 점수제: 거래 수(40건 이상 +2, 15건 이상 +1) · 최근 12개월 거래 3건 이상 +1 · 오차 7% 이하 +1 · 단지에 동 정보가 있는데 매물의 동을 모르면 −1 → 3점 이상 '신뢰 높음', 2점 '신뢰 보통', 그 미만 '표본 부족'(탐색 기본 필터에서 숨김).</p>
       <p>해제 거래와 직거래는 기준가 계산에서 뺍니다. 동 정보는 2023년 이후 거래에만 있어 오래된 단지는 동 보정이 비어 있을 수 있어요.</p>
       <p>매물은 네이버 부동산에 올라온 매매 호가입니다(비공식 수집, 2~4시간 주기). 호가는 협의로 달라질 수 있고, 급매 표기는 데이터 기준일 뿐 중개 조언이 아닙니다.</p></div></div>`;
   $('#setPrice').value = S.set.price; $('#setArea').value = S.set.area;
@@ -775,8 +793,8 @@ function renderMe() {
 // ------------------------------------------------------------ 토허(토지거래허가) — 공통
 // 데이터: data/toheo/summary.json, feed.json, complexes.json, pipeline.json, daily.json, open_cases.json, recent_done.json
 // 파일이 없으면(404) 각 패널은 빈 상태 문구를 보여 준다. 모든 '오늘'은 summary.today 를 쓴다.
-const TH = { sub: LS.get('thsub', 'pipeline'), feedDays: 14, feedGu: '', feedFav: false, topP: 'n30', topSgg: '', regF: 'all', regSort: 'open', showLand: false, sum: undefined, feed: undefined, cx: undefined, pipe: undefined, daily: undefined, open: undefined, done: undefined };
 const TH_SUBS = [['pipeline', '파이프라인'], ['feed', '소식'], ['top', '단지 TOP'], ['regions', '지역 현황'], ['estimate', '예상 승인일'], ['dz', '지정 현황']];
+const TH = { sub: TH_SUBS.some(([k]) => k === LS.get('thsub', 'pipeline')) ? LS.get('thsub', 'pipeline') : 'pipeline', feedDays: 14, feedGu: '', feedFav: false, topP: 'n30', topSgg: '', regF: 'all', regSort: 'open', showLand: false, sum: undefined, feed: undefined, cx: undefined, pipe: undefined, daily: undefined, open: undefined, done: undefined };
 const COVERAGE_NOTE = '서울은 <b>허가 완료</b> 건을 단지 단위로, 경기는 지정·구 접수 추세만, 인천은 규제지역이 아닙니다. <b>접수 단계는 단지를 알 수 없습니다</b> (새올 공개 목록에 단지·지번이 없음).';
 const zl = (x) => x == null ? 0 : typeof x === 'string' ? ({ full: 2, partial: 1, none: 0 }[x] || 0) : (+x || 0);
 const zoneLevel = (z) => z ? zl(z.level) : 0;
@@ -787,8 +805,11 @@ const WD = ['일', '월', '화', '수', '목', '금', '토'];
 const isoDate = (d) => { if (!d) return ''; d = String(d); return d.length === 8 ? `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}` : d.slice(0, 10); };
 const kdw = (d) => { const iso = isoDate(d); if (!iso) return '–'; const dt = new Date(iso + 'T00:00:00'); return `${iso.slice(5).replace('-', '.')}(${WD[dt.getDay()]})`; };
 const kfull = (d) => { const iso = isoDate(d); return iso ? iso.replace(/-/g, '.') : '–'; };
-const addDays = (iso, n) => { const d = new Date(isoDate(iso) + 'T00:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
-const thToday = () => (TH.sum && TH.sum.today) || new Date().toISOString().slice(0, 10);
+// 날짜 더하기는 UTC 로만 계산한다(로컬 자정 → toISOString(UTC) 로 뽑으면 UTC+9 에서 하루가 빠진다)
+const addDays = (iso, n) => { const [y, m, d] = isoDate(iso).split('-').map(Number); if (!y || !m || !d) return ''; return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10); };
+const localISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+// '오늘' 은 export 기준일(summary.today, KST). 아직 못 읽었으면 브라우저 로컬 날짜(UTC 가 아니라)
+const thToday = () => (TH.sum && TH.sum.today) || localISO();
 // 지정 배지: 단지 페이지 .sub, 지역 목록, 단지 TOP 에서 공통
 function zoneBadge(z) {
   if (!z) return '<span class="pill n">토허 없음</span>';
@@ -813,7 +834,9 @@ async function thLoad(key, path) {
 const loadSummary = () => thLoad('sum', 'data/toheo/summary.json');
 const regOf = (sgg) => TH.sum && (TH.sum.regions || []).find(r => r.sgg === sgg);
 const regLabel = (sgg) => { const r = regOf(sgg); return r ? r.label : sggShort(sgg); };
-const estFor = (sgg) => { const e = (TH.sum && TH.sum.estimates) || {}; return e[sgg] || (sgg && sgg.includes(':') ? e[sgg.split(':')[0]] : null) || e.all || null; };
+// 지역 추정치가 없으면 수도권 전체 분포로 대체하되 scope:'all' 을 붙여 문구에서 구분한다(지역 제목 아래 전체 수치가 말없이 실리지 않게)
+const estFor = (sgg) => { const e = (TH.sum && TH.sum.estimates) || {}; const own = e[sgg] || (sgg && sgg.includes(':') ? e[sgg.split(':')[0]] : null); if (own) return own; return e.all ? { ...e.all, scope: 'all' } : null; };
+const estBasis = (est) => est.scope === 'all' ? `이 지역 표본 부족 — 수도권 전체 완료 관측 ${fmtN(est.n)}건 기준` : `최근 완료 관측 ${fmtN(est.n)}건 기준`;
 // 차트: 막대 스파크(허가 주간), 선 스파크(접수 28일), 주간 막대, 일별 막대, 히스토그램
 function spark(arr, color) {
   if (!arr || !arr.length) return '';
@@ -825,10 +848,10 @@ function lineSpark(arr) {
   const w = 300, h = 26, m = Math.max(1, ...arr);
   return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><polyline fill="none" stroke="var(--toheo)" stroke-width="1.6" points="${arr.map((v, i) => `${(i / (arr.length - 1) * w).toFixed(1)},${(h - 2 - (v / m) * (h - 4)).toFixed(1)}`).join(' ')}"/></svg>`;
 }
-function weeklyBars(arr) {
+function weeklyBars(arr, today0) {
   if (!arr || !arr.length) return '<div class="note">주간 허가 집계가 없어요.</div>';
   const m = Math.max(1, ...arr);
-  const today = new Date(thToday() + 'T00:00:00');
+  const today = new Date((today0 || thToday()) + 'T00:00:00');   // export 의 집계 기준일과 같은 날짜로 라벨을 붙인다
   const monday = new Date(today); monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
   const labels = arr.map((_, i) => { const d = new Date(monday); d.setDate(monday.getDate() - 7 * (arr.length - 1 - i)); return `${d.getMonth() + 1}/${d.getDate()}`; });
   return `<div class="wbar">${arr.map((v, i) => `<div style="height:${Math.max(2, v / m * 76)}px" title="${labels[i]} 주 ${v}건"><span>${i % 2 ? '' : labels[i]}</span></div>`).join('')}</div><div class="wcap"></div><div class="note">월요일 시작 주 · ${arr.length}주 합계 ${arr.reduce((a, b) => a + b, 0)}건 · 허가일 기준</div>`;
@@ -845,7 +868,7 @@ function barChart(dates, series) {
   dates.forEach((d, i) => {
     const x0 = pl + i * gw + gw * 0.11;
     series.forEach((sr, j) => { const v = sr.data[i] || 0; if (v > 0) bars += `<rect x="${(x0 + j * bw).toFixed(1)}" y="${y(v).toFixed(1)}" width="${bw.toFixed(1)}" height="${(y(0) - y(v)).toFixed(1)}" fill="${sr.color}" rx="1"/>`; });
-    hits += `<rect class="hit" x="${(pl + i * gw).toFixed(1)}" y="${pt}" width="${gw.toFixed(1)}" height="${h - pt - pb}" fill="transparent" data-d="${d}" data-a="${series[0].data[i] || 0}" data-b="${series[1] ? series[1].data[i] || 0 : 0}"/>`;
+    hits += `<rect class="hit" tabindex="0" role="button" aria-label="${d} 접수 ${series[0].data[i] || 0}건, 완료 ${series[1] ? series[1].data[i] || 0 : 0}건" x="${(pl + i * gw).toFixed(1)}" y="${pt}" width="${gw.toFixed(1)}" height="${h - pt - pb}" fill="transparent" data-d="${d}" data-a="${series[0].data[i] || 0}" data-b="${series[1] ? series[1].data[i] || 0 : 0}"/>`;
     if (i % every === 0 || (i === n - 1 && (n - 1) % every > every / 2)) lbl += `<text x="${(pl + i * gw + gw / 2).toFixed(1)}" y="${h - 7}" font-size="9" text-anchor="middle" fill="var(--mute)">${d.slice(5).replace('-', '/')}</text>`;
   });
   const legend = series.map((sr, j) => `<rect x="${pl + j * 110}" y="${h - 2}" width="8" height="8" fill="${sr.color}"/><text x="${pl + j * 110 + 11}" y="${h + 6}" font-size="9.5" fill="var(--mute)">${sr.name}</text>`).join('');
@@ -861,7 +884,7 @@ function estimateHtml(est, iso, deadlineDays) {
   if (!est || est.p50 == null) return '<div class="note">관측된 완료 건이 아직 부족합니다.</div>';
   if (!iso) return '<div class="note">접수일을 입력하세요.</div>';
   const r = q => addDays(iso, Math.round(q));
-  return `<div class="minis c2"><div class="mini"><div class="l">빠르면 (P25)</div><div class="v">${kdw(r(est.p25 != null ? est.p25 : est.p50))}</div></div><div class="mini"><div class="l">보통 (중위)</div><div class="v">${kdw(r(est.p50))}</div></div><div class="mini"><div class="l">늦으면 (P75)</div><div class="v">${kdw(r(est.p75 != null ? est.p75 : est.p50))}</div></div><div class="mini"><div class="l">P90</div><div class="v">${kdw(r(est.p90 != null ? est.p90 : est.p50))}</div></div></div><div class="note" style="margin-top:6px">${kdw(iso)} 접수 가정 · 최근 완료 관측 ${fmtN(est.n)}건 기준${deadlineDays ? ` · 공개 목록상 처리기한은 보통 ${kdw(addDays(iso, Math.round(deadlineDays)))}` : ''}. 관측일은 하루 단위이고 보완요구·휴일에 따라 달라질 수 있습니다.</div>`;
+  return `<div class="minis c2"><div class="mini"><div class="l">빠르면 (P25)</div><div class="v">${kdw(r(est.p25 != null ? est.p25 : est.p50))}</div></div><div class="mini"><div class="l">보통 (중위)</div><div class="v">${kdw(r(est.p50))}</div></div><div class="mini"><div class="l">늦으면 (P75)</div><div class="v">${kdw(r(est.p75 != null ? est.p75 : est.p50))}</div></div><div class="mini"><div class="l">P90</div><div class="v">${kdw(r(est.p90 != null ? est.p90 : est.p50))}</div></div></div><div class="note" style="margin-top:6px">${kdw(iso)} 접수 가정 · ${estBasis(est)}${deadlineDays ? ` · 공개 목록상 처리기한은 보통 ${kdw(addDays(iso, Math.round(deadlineDays)))}` : ''}. 관측일은 하루 단위이고 보완요구·휴일에 따라 달라질 수 있습니다.</div>`;
 }
 // 내정보 탭: 토허 수집 상태 행 (status.json fetchLog.toheo, counts)
 function toheoStatusRows(t, counts) {
@@ -900,14 +923,15 @@ function complexToheoPanel(c) {
   const tlHtml = tl.length ? `<ul class="tl">${tl.map(e => `<li class="${esc(e.type || '')}"><div class="t">${kdw(e.date)} · ${esc(e.text)}</div>${e.grp ? `<div class="s">${fmtArea(null, +e.grp)}</div>` : ''}</li>`).join('')}</ul>` : '<div class="note">아직 기록된 이벤트가 없어요.</div>';
   // 구 처리중·예상 승인일
   const est = r.est || (r.p50 != null ? { p50: r.p50, p90: r.p90, p25: r.p25, p75: r.p75 } : null);
+  const base = t.today || thToday();   // 단지 페이지는 summary.json 을 읽지 않으므로 c/<cid>.json 의 기준일을 쓴다
   const regionHtml = r.sgg ? `<div class="minis"><div class="mini"><div class="l">처리중</div><div class="v">${fmtN(r.open)}</div></div><div class="mini"><div class="l">7일 접수</div><div class="v">${fmtN(r.received7)}</div></div><div class="mini"><div class="l">소요일 중위</div><div class="v">${f1(r.p50)}</div></div><div class="mini"><div class="l">P90</div><div class="v">${f1(r.p90)}</div></div></div>
-    <div class="note" style="margin-top:6px">${est && est.p50 != null ? `오늘 접수하면 보통 ${kdw(addDays(thToday(), Math.round(est.p50)))}, 늦으면 ${kdw(addDays(thToday(), Math.round(est.p75 != null ? est.p75 : est.p90)))} 완료` : '완료 관측이 쌓이면 예상 승인일이 표시됩니다'} · <a href="#toheo-r-${esc(r.sgg)}">${esc(r.label || sggShort(r.sgg))} 상세</a></div>` : '<div class="note">이 지역은 새올 접수 현황 수집 대상이 아니에요.</div>';
+    <div class="note" style="margin-top:6px">${est && est.p50 != null ? `${kdw(base)} 접수하면 보통 ${kdw(addDays(base, Math.round(est.p50)))}, 늦으면 ${kdw(addDays(base, Math.round(est.p75 != null ? est.p75 : est.p90)))} 완료` : '완료 관측이 쌓이면 예상 승인일이 표시됩니다'} · <a href="#toheo-r-${esc(r.sgg)}">${esc(r.label || sggShort(r.sgg))} 상세</a></div>` : '<div class="note">이 지역은 새올 접수 현황 수집 대상이 아니에요.</div>';
   return `<div class="panel">${head}
     <div class="note" style="margin-bottom:8px">${zoneLine}</div>
     <h3 style="margin:8px 0 4px">평형별 <small class="note">현재 매물 · 30일 내림(추정) · 확인된 거래</small></h3>${grpTbl}
     ${goneHtml ? `<h3 style="margin:10px 0 4px">최근 매물 내림 <small class="note">추정 · 점수는 허가 접수일 가능성</small></h3>${goneHtml}` : ''}
     <h3 style="margin:10px 0 6px">허가 완료 <small class="note">${purposes || '용도 집계 없음'}</small></h3>${permitSum}
-    ${(p.weekly || []).some(v => v) ? `<div style="margin-top:8px">${weeklyBars(p.weekly)}</div>` : ''}
+    ${(p.weekly || []).some(v => v) ? `<div style="margin-top:8px">${weeklyBars(p.weekly, base)}</div>` : ''}
     <h3 style="margin:10px 0 4px">허가 ↔ 실거래 <small class="note">같은 단지, 허가일 이후 75일 안의 실거래를 1:1 매칭</small></h3>${permitRows}
     <h3 style="margin:10px 0 4px">타임라인 <small class="note">최근 ${tl.length}건</small></h3>${tlHtml}
     <h3 style="margin:10px 0 6px">${esc(r.label || '구')} 처리 현황 <small class="note">새올 전자민원</small></h3>${regionHtml}
@@ -927,16 +951,25 @@ async function renderToheo(sgg) {
       <div class="kpis">${[['처리중 민원', '–'], ['7일 허가', '–'], ['30일 허가', '–'], ['10·15 구역', '–']].map(k => `<div class="kpi"><div class="l">${k[0]}</div><div class="v">${k[1]}</div></div>`).join('')}</div>${tabsHtml}<div id="thBody"></div>`;
     bindSubtabs(); renderToheoSub(); return;
   }
-  const t = sum.totals || {}, dz = (sum.designations || []).find(x => x.id === 'molit-1015') || (sum.designations || []).filter(x => x.status === 'active' && dzAptRelevant(x) && !x.partial).sort((a, b) => a.days_left - b.days_left)[0];
-  const r7 = t.received7, r30 = t.received30, chg = pctChg(r30, t.receivedPrev30);
-  v.innerHTML = `<div class="kpis">
+  try {
+    const t = sum.totals || {}, dzs = sum.designations || [];
+    // 4번째 KPI: 10·15 대책(molit-2025-1219)이 살아 있으면 그것, 아니면 내국인 아파트 전체 지정 중 가장 먼저 만료되는 것
+    const dzOk = x => x && x.status !== 'expired' && dzAptRelevant(x) && !x.partial && x.target_person !== '외국인등';
+    const dz = [dzs.find(x => x.id === 'molit-2025-1219')].filter(dzOk)[0] || dzs.filter(x => x.status === 'active' && dzOk(x)).sort((a, b) => a.days_left - b.days_left)[0];
+    const dzTitle = x => String(x.title || x.id || '').replace(/\s*\(.*\)$/, '').slice(0, 14);
+    const r7 = t.received7, r30 = t.received30, chg = pctChg(r30, t.receivedPrev30);
+    v.innerHTML = `<div class="kpis">
       <div class="kpi"><div class="l">처리중 민원</div><div class="v">${fmtN(t.open)}</div><div class="d">7일 접수 ${fmtN(r7)} · 30일 ${fmtN(r30)}${chg == null ? '' : ` (${chg > 0 ? '+' : ''}${chg}%)`}</div></div>
       <div class="kpi"><div class="l">7일 허가</div><div class="v">${fmtN(t.permits7)}</div><div class="d">서울 허가 완료 · 단지 단위</div></div>
       <div class="kpi"><div class="l">30일 허가</div><div class="v">${fmtN(t.permits30)}</div><div class="d">내림 추정 ${fmtN(t.goneEst30)} · 확인 ${fmtN(t.confirmed30)}</div></div>
-      <div class="kpi"><div class="l">${dz ? esc(dz.title.replace(/\s*\(.*\)$/, '')).slice(0, 14) : '10·15 구역'}</div><div class="v">${dz ? (dz.status === 'upcoming' ? `D-${dz.days_until_start}` : `D-${dz.days_left}`) : '–'}</div><div class="d">${dz ? `${kfull(dz.end)}까지${dz.renewal_status && dz.renewal_status !== '-' ? ' · ' + esc(dz.renewal_status) : ''}` : '지정 없음'}</div></div>
+      <div class="kpi"><div class="l">${dz ? esc(dzTitle(dz)) : '10·15 구역'}</div><div class="v">${dz ? (dz.status === 'upcoming' ? `D-${dz.days_until_start}` : `D-${dz.days_left}`) : '–'}</div><div class="d">${dz ? `${kfull(dz.end)}까지${dz.renewal_status && dz.renewal_status !== '-' ? ' · ' + esc(dz.renewal_status) : ''}` : '지정 없음'}</div></div>
     </div>
     <div class="note" style="margin-bottom:8px">${COVERAGE_NOTE} 수집 ${esc(String(sum.generatedAt || '').replace('T', ' ').slice(0, 16))}</div>
     ${tabsHtml}<div id="thBody"></div>`;
+  } catch (e) {
+    console.error(e);
+    v.innerHTML = `<div class="empty"><b>토허 요약을 표시하지 못했어요</b>${esc(e.message)}</div>${tabsHtml}<div id="thBody"></div>`;
+  }
   bindSubtabs(); renderToheoSub();
 }
 function bindSubtabs() {
@@ -1057,14 +1090,16 @@ async function renderDz(box) {
   const land = all.filter(x => !dzAptRelevant(x)).sort((a, b) => a.days_left - b.days_left);
   const items = TH.showLand ? apt.concat(land) : apt;
   const SCOPE = { apt: '아파트', all: '모든 토지', land: '토지(도로)' };
-  box.innerHTML = `<div class="strip">${apt.filter(x => !x.partial).slice(0, 8).map(it => `<button type="button" class="dzs" data-id="${esc(it.id)}"><b>${esc(it.title.replace(/\s*\(.*\)$/, ''))}</b> ${dzPill(it)}</button>`).join('')}</div>
-    ${items.length ? items.map(it => `<div class="dzc" data-id="${esc(it.id)}"><div class="t">${esc(it.title)} ${dzPill(it)} <span class="pill n">${SCOPE[it.scope] || esc(it.scope || '')}${it.partial ? ' · 구역 일부' : ''}</span>${it.target_person && it.target_person !== '내국인' ? `<span class="pill b">${esc(it.target_person)}</span>` : ''}${it.renewal_status && it.renewal_status !== '-' ? `<span class="pill w">${esc(it.renewal_status)}</span>` : ''}</div>
+  const title = it => String(it.title || it.id || '');
+  box.innerHTML = `<div class="strip">${apt.filter(x => !x.partial).slice(0, 8).map(it => `<button type="button" class="dzs" data-id="${esc(it.id)}"><b>${esc(title(it).replace(/\s*\(.*\)$/, ''))}</b> ${dzPill(it)}</button>`).join('')}</div>
+    ${items.length ? items.map(it => `<div class="dzc" data-id="${esc(it.id)}"><button type="button" class="t" aria-expanded="false" aria-controls="dzm-${esc(it.id)}">${esc(title(it))} ${dzPill(it)} <span class="pill n">${SCOPE[it.scope] || esc(it.scope || '')}${it.partial ? ' · 구역 일부' : ''}</span>${it.target_person && it.target_person !== '내국인' ? `<span class="pill b">${esc(it.target_person)}</span>` : ''}${it.renewal_status && it.renewal_status !== '-' ? `<span class="pill w">${esc(it.renewal_status)}</span>` : ''}</button>
       <div class="meta">${esc(it.authority || '')}${it.notice_no ? ` ${esc(it.notice_no)}` : ''} · ${kfull(it.start)} ~ ${kfull(it.end)} · 적용 지역 ${(it.region_ids || []).length}곳${it.threshold_m2 ? ` · 허가 기준 ${it.threshold_m2}㎡ 초과` : ''}</div><div class="tg">${esc(it.target || '')}</div>
-      <div class="more">${esc(it.note || '')}${it.verified_at ? ` · 확인 ${esc(it.verified_at)}` : ''} ${it.source ? `<a href="${esc(it.source)}" target="_blank" rel="noopener">출처</a>` : ''}<br><span>${(it.region_ids || []).map(regLabel).join(', ')}</span></div></div>`).join('') : `<div class="empty"><b>지정 정보가 없어요</b>${sum ? '현재 적용 중인 지정이 없습니다.' : 'config/designations.json 이 export 되면 여기에 나타납니다.'}</div>`}
+      <div class="more" id="dzm-${esc(it.id)}">${esc(it.note || '')}${it.verified_at ? ` · 확인 ${esc(it.verified_at)}` : ''} ${it.source ? `<a href="${esc(it.source)}" target="_blank" rel="noopener">출처</a>` : ''}<br><span>${(it.region_ids || []).map(s => esc(regLabel(s))).join(', ')}</span></div></div>`).join('') : `<div class="empty"><b>지정 정보가 없어요</b>${sum ? '현재 적용 중인 지정이 없습니다.' : 'config/designations.json 이 export 되면 여기에 나타납니다.'}</div>`}
     ${land.length ? `<button type="button" class="btn" id="thDzMore">${TH.showLand ? '아파트 무관 지정 숨기기' : `아파트와 무관한 지정 ${land.length}건 보기 (도로·후보지 등)`}</button>` : ''}
     <div class="note" style="margin-top:8px">지정 현황은 고시 기준이며 구역 단위 지정(신통기획·공공재개발 등)은 포함하지 않습니다. 개별 필지는 토지이음에서 확인하세요. ${((sum && sum.designationRefs) || []).map(r => `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a>`).join(' · ')}</div>`;
-  box.querySelectorAll('.dzc').forEach(el => el.addEventListener('click', () => el.classList.toggle('open')));
-  box.querySelectorAll('.dzs').forEach(b => b.addEventListener('click', () => { const el = box.querySelector(`.dzc[data-id="${CSS.escape(b.dataset.id)}"]`); if (el) { el.classList.add('open'); el.scrollIntoView({ block: 'center' }); } }));
+  const setOpen = (el, open) => { el.classList.toggle('open', open); const b = el.querySelector('button.t'); if (b) b.setAttribute('aria-expanded', String(open)); };
+  box.querySelectorAll('.dzc').forEach(el => el.addEventListener('click', (e) => { if (e.target.closest('a')) return; setOpen(el, !el.classList.contains('open')); }));
+  box.querySelectorAll('.dzs').forEach(b => b.addEventListener('click', () => { const el = box.querySelector(`.dzc[data-id="${CSS.escape(b.dataset.id)}"]`); if (el) { setOpen(el, true); el.scrollIntoView({ block: 'center' }); } }));
   const mb = $('#thDzMore'); if (mb) mb.addEventListener('click', () => { TH.showLand = !TH.showLand; renderToheoSub(); });
 }
 
@@ -1075,6 +1110,7 @@ async function renderToheoRegion(sgg) {
   const [daily, open, done, cx] = await Promise.all([thLoad('daily', 'data/toheo/daily.json'), thLoad('open', 'data/toheo/open_cases.json'), thLoad('done', 'data/toheo/recent_done.json'), thLoad('cx', 'data/toheo/complexes.json')]);
   const dzs = (TH.sum.designations || []).filter(x => x.status !== 'expired' && (x.region_ids || []).includes(sgg));
   const est = estFor(sgg);
+  const delta = pctChg(r.received30, r.receivedPrev30);   // 지역 현황 서브탭을 거치지 않고 딥링크로 와도 계산
   const oc = ((open || {})[sgg] || []).slice().sort((a, b) => b.days - a.days);
   const sc = r.statusCounts || {};
   const cxs = (r.permitsTop && r.permitsTop.length ? r.permitsTop : ((cx && cx.items) || []).filter(x => x.sgg === sgg).sort((a, b) => b.n30 - a.n30).slice(0, 10));
@@ -1082,20 +1118,25 @@ async function renderToheoRegion(sgg) {
       <div class="sub">${r.fetch && r.fetch.at ? `새올 수집 ${esc(String(r.fetch.at).replace('T', ' ').slice(5, 16))} · ${esc(r.fetch.host || '')}${r.fetch.error ? ` · <span class="ng">${esc(r.fetch.error)}</span>` : ''}` : '아직 수집 전'}</div>
       <div class="acts"><a class="btn" href="#toheo">← 토허</a>${r.sido === '서울' ? `<a class="btn" href="feed/toheo/${esc(sgg)}.xml">허가 소식 RSS</a>` : ''}</div></div>
     <div class="panel"><h2>토지거래허가구역</h2>${dzs.length ? dzs.map(it => `<div class="row"><span class="k"><b style="color:var(--ink)">${esc(it.title)}</b><div class="st">${esc(it.authority || '')} 지정${it.partial ? ' · 구 안의 일부 구역만' : ''} · ${esc(it.target || '')}</div></span><span class="v">${dzPill(it)}</span></div>`).join('') : '<div class="note">현재 적용되는 지정이 없습니다 (구역 단위 지정 제외).</div>'}</div>
-    <div class="kpis"><div class="kpi"><div class="l">처리중</div><div class="v">${fmtN(r.open)}</div></div><div class="kpi"><div class="l">7일 접수</div><div class="v">${fmtN(r.received7)}</div></div><div class="kpi"><div class="l">30일 접수</div><div class="v">${fmtN(r.received30)}</div><div class="d">${r._delta == null ? '' : `직전 30일 대비 ${r._delta > 0 ? '+' : ''}${r._delta}%`}</div></div><div class="kpi"><div class="l">30일 완료(관측)</div><div class="v">${fmtN(r.completed30)}</div></div></div>
+    <div class="kpis"><div class="kpi"><div class="l">처리중</div><div class="v">${fmtN(r.open)}</div></div><div class="kpi"><div class="l">7일 접수</div><div class="v">${fmtN(r.received7)}</div></div><div class="kpi"><div class="l">30일 접수</div><div class="v">${fmtN(r.received30)}</div><div class="d">${delta == null ? '' : `직전 30일 대비 ${delta > 0 ? '+' : ''}${delta}%`}</div></div><div class="kpi"><div class="l">30일 완료(관측)</div><div class="v">${fmtN(r.completed30)}</div></div></div>
     ${r.sido === '서울' ? `<div class="panel"><h2>허가 많은 단지 <small>최근 30일</small></h2>${cxs.length ? `<div class="rows">${cxs.map(x => `<a class="row link" href="${cxLink(x.cid)}"><span class="main"><b>${esc(x.name || '단지 미확인')}</b><div class="st">${esc(x.umd || '')}${x.n90 != null ? ` · 90일 ${x.n90}` : ''}${x.last ? ` · 최근 ${fmtDate(x.last)}` : ''}</div></span><span class="num"><div class="o">${x.n30}</div><div class="ol">30일</div></span></a>`).join('')}</div>` : '<div class="note">최근 30일 이 구에 매칭된 허가 완료 건이 없어요.</div>'}</div>` : '<div class="panel"><h2>단지별 허가</h2><div class="note">경기도는 허가 내역을 온라인으로 공개하지 않아 지정 상태와 구 단위 접수 현황만 보여 줍니다.</div></div>'}
-    <div class="panel"><div class="ph"><h2>일별 접수 · 처리 완료(관측) <small id="thRangeLbl"></small></h2></div><div class="ctl">${[30, 90, 180].map(n => `<button type="button" class="chip ${n === 30 ? 'on' : ''}" data-r="${n}">${n / 30}개월</button>`).join('')}</div><div id="thCh"></div><div class="note" id="thChCap">막대를 누르면 날짜별 값이 표시됩니다</div></div>
+    <div class="panel"><div class="ph"><h2>일별 접수 · 처리 완료(관측) <small id="thRangeLbl"></small></h2></div><div class="ctl">${[30, 90, 180].map(n => `<button type="button" class="chip ${n === 30 ? 'on' : ''}" data-r="${n}">${n / 30}개월</button>`).join('')}</div><div id="thCh"></div><div class="note" id="thChCap" aria-live="polite">막대를 누르거나 Tab 으로 이동하면 날짜별 값이 표시됩니다</div></div>
     <div class="panel"><h2>처리 소요일 <small>완료 관측 ${fmtN(r.durationN)}건</small></h2><div class="minis"><div class="mini"><div class="l">P25</div><div class="v">${f1(r.p25)}</div></div><div class="mini"><div class="l">중위</div><div class="v">${f1(r.p50)}</div></div><div class="mini"><div class="l">P75</div><div class="v">${f1(r.p75)}</div></div><div class="mini"><div class="l">P90</div><div class="v">${f1(r.p90)}</div></div></div>
       <div class="note" style="margin-top:6px">공개 목록의 처리기한은 접수 후 보통 ${r.deadlineDays ? f1(r.deadlineDays) + '일' : '–'} · 완료 상태 분포: ${Object.entries(sc).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${esc(k)} ${fmtN(n)}`).join(', ') || '–'}</div>
       <div id="thRHist" style="margin-top:12px">${hist(((done || {})[sgg] || []).map(x => x.n))}</div></div>
-    <div class="panel"><h2>예상 승인일 계산</h2><div class="ctl"><input type="date" id="thRD" value="${esc(thToday())}"><button type="button" class="btn primary" id="thRB">계산</button></div><div id="thROut" class="note">${est ? `최근 완료 관측 ${fmtN(est.n)}건 기준` : '관측된 완료 건이 아직 부족합니다'}</div></div>
+    <div class="panel"><h2>예상 승인일 계산</h2><div class="ctl"><input type="date" id="thRD" value="${esc(thToday())}"><button type="button" class="btn primary" id="thRB">계산</button></div><div id="thROut" class="note">${est ? estBasis(est) : '관측된 완료 건이 아직 부족합니다'}</div></div>
     <div class="panel"><h2>처리중 민원 <small>${fmtN(oc.length)}건 · 오래된 순 · 기한 지난 건은 빨강</small></h2><div class="tblw"><table class="trades"><thead><tr><th>접수번호</th><th>접수일</th><th>처리기한</th><th class="r">경과</th><th>부서</th></tr></thead><tbody>${oc.slice(0, 400).map(c => `<tr><td>${esc(c.no)}</td><td>${fmtDate(isoDate(c.received))}</td><td class="${c.overdue ? 'over' : ''}">${fmtDate(isoDate(c.deadline))}</td><td class="r">${c.days}일</td><td class="note">${esc(c.dept || '')}</td></tr>`).join('') || `<tr><td colspan="5" class="note">${open ? '없음' : '처리중 목록 데이터가 아직 없어요'}</td></tr>`}</tbody></table></div>${oc.length > 400 ? '<div class="note">상위 400건만 표시</div>' : ''}<div class="note" style="margin-top:6px">접수 단계는 단지를 알 수 없습니다 — 새올 공개 목록에는 접수번호·민원명·처리기한·부서만 있습니다.</div></div>`;
   const draw = (n) => {
     const s = daily && daily[sgg];
     if (!s || !s.dates || !s.dates.length) { $('#thCh').innerHTML = '<div class="note">일별 집계(data/toheo/daily.json)가 아직 없어요.</div>'; return; }
     const k = Math.max(0, s.dates.length - n);
     $('#thCh').innerHTML = barChart(s.dates.slice(k), [{ name: '접수', data: s.received.slice(k), color: 'var(--toheo)' }, { name: '처리 완료(관측)', data: s.completed.slice(k), color: 'var(--s2)' }]);
-    $('#thCh').querySelectorAll('rect.hit').forEach(el => el.addEventListener('click', () => { $('#thChCap').textContent = `${kdw(el.dataset.d)} · 접수 ${el.dataset.a}건 · 처리 완료(관측) ${el.dataset.b}건`; }));
+    const show = (el) => { $('#thChCap').textContent = `${kdw(el.dataset.d)} · 접수 ${el.dataset.a}건 · 처리 완료(관측) ${el.dataset.b}건`; };
+    $('#thCh').querySelectorAll('rect.hit').forEach(el => {
+      el.addEventListener('click', () => show(el));
+      el.addEventListener('focus', () => show(el));
+      el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); show(el); } });
+    });
     $('#thRangeLbl').textContent = `최근 ${n}일`;
   };
   draw(30);

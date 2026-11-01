@@ -357,7 +357,7 @@ def test_apply_articles_pure():
     ev, k = apply_articles(ls, "c1", [dict(a) for a in arts], "2026-11-01")
     assert k["new"] == 2 and [x["event"] for x in ev] == ["new", "new"] and ev[0]["prevPrice"] == ""
     ev, k = apply_articles(ls, "c1", [{**arts[0], "price": 90}], "2026-11-02")
-    assert k == {"new": 0, "relist": 0, "price": 1, "gone": 0, "swap": 0}
+    assert k == {"new": 0, "relist": 0, "price": 1, "gone": 0, "swap": 0, "unmatched": 0}
     assert ls["a"]["priceChanges"] == 1 and ls["a"]["priceFirst"] == 100 and ls["b"]["miss"] == 1
     assert ev[0]["event"] == "price" and ev[0]["price"] == 90 and ev[0]["prevPrice"] == 100
     ev, k = apply_articles(ls, "c1", [{**arts[0], "price": 90}], "2026-11-03")

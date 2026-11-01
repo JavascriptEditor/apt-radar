@@ -4,8 +4,16 @@ name: 매물 수집 (집 PC self-hosted)
 # 이 워크플로가 집 PC 에서 `python -m collector listings` 를 돌려 data 브랜치에 푸시만 한다.
 # export·Pages 배포는 다음 collect.yml 실행(또는 수동 mode=export)이 처리한다.
 #
+# ★ 보안: self-hosted runner 는 저장소 단위로 등록되므로 **Public 저장소에서는 권장하지 않는다**(GitHub 공식 안내).
+#   포크 PR 이 추가한 워크플로가 같은 러너(집 PC: git 자격증명·NAVER_LAND_TOKEN 보유)에서 실행될 수 있다.
+#   Public 저장소라면 scripts/home_listings.sh(.ps1) 을 집 PC 스케줄러로 돌리는 방법 A 를 쓰고, 굳이 러너를 쓰려면
+#   Private 저장소 + Settings → Actions → "Require approval for all outside collaborators" + 별도 사용자/컨테이너로 격리할 것.
+#
 # 준비: Settings → Actions → Runners → New self-hosted runner (라벨 self-hosted 기본값), 집 PC 에 Python 3.12 + git.
 # runner 없이 쓰려면 scripts/home_listings.sh(.ps1) 을 집 PC 의 스케줄러로 돌려도 같은 결과.
+#
+# collect.yml 의 매물 수집(09:40 …)과 20분 간격으로 겹치지만, 양쪽 모두 직전 2시간 안에 성공 수집(LISTINGS_MIN_INTERVAL_MIN)이
+# 있으면 건너뛰므로 같은 상태기계가 이중으로 돌지 않는다(Actions 가 blocked 일 때만 집 PC 가 실제로 수집).
 
 on:
   schedule:
@@ -32,6 +40,7 @@ jobs:
       NAVER_MAX_CALLS: ${{ github.event.inputs.max_calls || vars.NAVER_MAX_CALLS }}
       NAVER_DELAY_SEC: ${{ vars.NAVER_DELAY_SEC }}
       NAVER_LAND_TOKEN: ${{ secrets.NAVER_LAND_TOKEN }}
+      LISTINGS_MIN_INTERVAL_MIN: ${{ vars.LISTINGS_MIN_INTERVAL_MIN || '120' }}
       DATA_DIR: data
       PIP_DISABLE_PIP_VERSION_CHECK: "1"
     steps:
@@ -42,6 +51,8 @@ jobs:
       - name: data 브랜치 worktree
         shell: bash
         run: |
+          git config user.name collector-home
+          git config user.email collector-home@users.noreply.github.com
           git worktree prune
           rm -rf data
           git fetch origin data:data --update-head-ok
@@ -55,7 +66,7 @@ jobs:
       - name: 네이버 매물 수집
         shell: bash
         run: |
-          # 빈 Variables 는 코드 기본값을 쓰도록 지움
+          # 빈 Variables 는 코드가 '미설정' 으로 취급하지만, 혹시 몰라 지움
           for v in REGION_FILTER NAVER_MAX_CALLS NAVER_DELAY_SEC NAVER_LAND_TOKEN; do
             [ -z "${!v}" ] && unset "$v" || true
           done
@@ -67,11 +78,15 @@ jobs:
           cd data
           git add -A
           if git diff --cached --quiet; then echo "변경 없음"; exit 0; fi
-          git -c user.name=collector-home -c user.email=collector-home@users.noreply.github.com \
-            commit -qm "listings(home) $(date -u +'%Y-%m-%dT%H:%MZ')"
-          # Actions 쪽 커밋이 먼저 들어갔으면 그 위에 얹는다(충돌 시 집 PC 결과 우선)
-          git pull --rebase -X theirs origin data || { git rebase --abort 2>/dev/null || true; }
-          git push origin HEAD:data
+          git commit -qm "listings(home) $(date -u +'%Y-%m-%dT%H:%MZ')"
+          # Actions 쪽 커밋이 먼저 들어갔으면 그 위에 얹는다(충돌 시 집 PC 결과 우선). 최대 3회 재시도
+          for i in 1 2 3; do
+            if git pull --rebase -X theirs origin data && git push origin HEAD:data; then exit 0; fi
+            git rebase --abort 2>/dev/null || true
+            sleep $((i * 10))
+          done
+          echo "::error::data 브랜치 푸시 실패"
+          exit 1
 
       - name: worktree 정리
         if: always()

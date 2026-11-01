@@ -26,7 +26,18 @@ def load(path: str | os.PathLike | None = None) -> dict:
     with open(p, encoding="utf-8") as f:
         data = json.load(f)
     data.setdefault("items", [])
-    for it in data["items"]:
+    for i, it in enumerate(data["items"]):
+        # 사람이 편집하는 파일이므로 필수 필드를 검증한다(누락 시 사이트 토허 탭이 TypeError 로 멈추는 것보다 여기서 실패)
+        for k in ("id", "start", "end"):
+            if not it.get(k):
+                raise ValueError(f"designations.json items[{i}] 에 '{k}' 가 없습니다 (id={it.get('id')!r})")
+        for k in ("start", "end"):
+            try:
+                dt.date.fromisoformat(str(it[k]))
+            except ValueError as e:
+                raise ValueError(f"designations.json {it['id']}: {k}={it[k]!r} 는 YYYY-MM-DD 가 아닙니다") from e
+        it.setdefault("title", str(it["id"]))
+        it.setdefault("regions", [])
         it.setdefault("partial", False)
         it.setdefault("apt_relevant", it.get("scope") in ("apt", "all"))
         it.setdefault("target_person", "전체")

@@ -147,9 +147,12 @@ def parse_record(rec: dict, sgg: str, fields: dict | None = None) -> dict | None
     """응답 1건(JSON dict) → permits_seoul.csv 행. 키 alias, 주소 '구 동 지번' 분해, 날짜 정규화. 쓸모없으면 None."""
     fields = fields or DEFAULT_FIELDS
     g = lambda k: _pick(rec, fields.get(k, DEFAULT_FIELDS.get(k, [])))  # noqa: E731
-    sgg_cd = str(g("sgg") or sgg or "").strip()
+    # 응답의 SGG_CD 는 사이트 파일 경로(feed/toheo/<sgg>.xml 등)에 쓰이므로 아는 서울 구 코드일 때만 채택
+    sgg_cd = str(g("sgg") or "").strip()
+    if sgg_cd not in SEOUL_GUS:
+        sgg_cd = sgg if sgg in SEOUL_GUS else re.sub(r"[^0-9]", "", str(sgg or ""))[:5]
     if not sgg_cd:
-        sgg_cd = sgg
+        return None
     address = str(g("address") or "").strip()
     gu, dong, jib = split_address(address)
     bobn, bubn = str(g("bobn") or "").strip(), str(g("bubn") or "").strip()
@@ -375,6 +378,28 @@ def parse_any(text: str, sgg: str, fields: dict | None = None) -> tuple[list[dic
     return [permit_to_row(pm, sgg) for pm in parse_html(text, SEOUL_GUS.get(sgg, ""))], "html"
 
 
+RE_SESSION = re.compile(r"로그인|세션|login|session|sessionTimeout|timeout", re.I)
+
+
+def diagnose_empty(text: str) -> str | None:
+    """HTML 폴백이 0건을 돌려줬을 때 '정상 빈 목록' 이 아닌 이유. 정상이면 None.
+
+    - JSON 같은데 목록이 없음(`{"result": null, "msg": ...}` 류 오류 JSON)
+    - 로그인/세션 만료 안내 페이지
+    - 표(<table>)가 전혀 없는 HTML(차단·점검 안내)
+    """
+    t = (text or "").strip()
+    if not t:
+        return "비정상 응답(빈 본문)"
+    if t.startswith("{") or t.startswith("["):
+        return f"비정상 응답(JSON 에 목록 없음, 길이 {len(t)})"
+    if "<table" not in t.lower():
+        if RE_SESSION.search(t[:5000]):
+            return f"세션 만료/로그인 페이지(길이 {len(t)})"
+        return f"비정상 응답(kind=html, 표 없음, 길이 {len(t)})"
+    return None
+
+
 # ----------------------------------------------------------------------------- 클라이언트
 
 class SeoulPermits:
@@ -393,8 +418,14 @@ class SeoulPermits:
                 saved = json.loads(self.state_path.read_text(encoding="utf-8"))
             except (ValueError, OSError):
                 saved = {}
+            if not isinstance(saved, dict):
+                saved = {}
+            # 우선순위: 사용자가 config 에서 기본값과 다르게 지정한 값 > --discover 로 찾아 저장한 값 > 내장 기본값
+            customized = {k for k in ("url", "method", "params", "headers") if (cfg or {}).get(k) not in (None, "", DEFAULT_CFG[k])}
             for k in ("url", "method", "params", "headers"):
-                if saved.get(k) and not (cfg or {}).get(k):
+                if not saved.get(k) or k in customized:
+                    continue
+                if saved.get("discovered") or not self.cfg.get(k):
                     self.cfg[k] = saved[k]
             self.cfg["discovered"] = saved.get("discovered")
             self.cfg["checked_at"] = saved.get("checked_at")
@@ -441,11 +472,22 @@ class SeoulPermits:
         ctype = (r.headers.get("Content-Type") or "") if getattr(r, "headers", None) else ""
         return r.text if "json" in ctype else decode(r)
 
-    def query(self, sgg: str, frm: dt.date, to: dt.date) -> tuple[list[dict], str, str]:
-        """한 자치구·한 기간 조회 → (행, 원문 텍스트, 'json'|'html')."""
+    def query(self, sgg: str, frm: dt.date, to: dt.date, _retry: bool = True) -> tuple[list[dict], str, str]:
+        """한 자치구·한 기간 조회 → (행, 원문 텍스트, 'json'|'html').
+
+        0건인데 응답이 '정상 빈 목록' 이 아니면(JSON 에 목록 없음, 로그인/세션 페이지, 표 없는 HTML) 예외를 던져
+        호출자가 '조회 0건' 이 아니라 '오류' 로 기록하게 한다. 세션 페이지면 세션을 다시 받아 한 번 재시도.
+        """
         self._ensure_session()
         text = self._call(self.cfg["url"], self.cfg.get("method", "POST"), self._fill(self.cfg["params"], sgg, frm, to))
         rows, kind = parse_any(text, sgg, self.cfg.get("fields"))
+        if kind == "html" and not rows:
+            problem = diagnose_empty(text)
+            if problem:
+                if _retry and "세션" in problem:
+                    self._session_ok = False
+                    return self.query(sgg, frm, to, _retry=False)
+                raise RuntimeError(problem)
         return rows, text, kind
 
     # ---- 수집 -----------------------------------------------------------
@@ -566,28 +608,67 @@ class SeoulPermits:
 
 # ----------------------------------------------------------------------------- 누적·매칭
 
+def _is_acc_key(key: str) -> bool:
+    """'11680|2026|10|1'(JSON 의 접수 키) 이면 True, '강남구 대치동 316|2026-10-20|주거용'(HTML 폴백 대체키) 이면 False."""
+    head = (key or "").split("|", 1)[0]
+    return head.isdigit() and len(head) == 5
+
+
+def _content_key(r: dict) -> tuple:
+    """같은 허가를 키 체계와 무관하게 알아보는 내용 키 (sgg, 법정동, 정규화 지번, 처리일, 이용목적)."""
+    bon, bu = _norm_jibun(r.get("jibun") or "")
+    return (r.get("sgg", ""), (r.get("dong") or "").strip(), bon + ("-" + bu if bu else ""), r.get("hndl_ymd", ""),
+            (r.get("use_purp") or "").strip())
+
+
+def _fill(cur: dict, row: dict) -> None:
+    for f, v in row.items():
+        if f in ("cid", "cname", "first_seen", "key"):
+            continue
+        if v and not cur.get(f):
+            cur[f] = v
+    if row.get("job_gbn") and row["job_gbn"] != cur.get("job_gbn"):
+        cur["job_gbn"] = row["job_gbn"]     # 미결 → 허가 등 처리 결과 갱신
+
+
 def merge_permits(existing: dict[str, dict], new: list[dict], today: str | dt.date | None = None) -> int:
-    """key 기준으로 중복 없이 누적. 기존 행의 빈 칸은 새 값으로 채움. 반환: 추가 건수."""
+    """key 기준으로 중복 없이 누적. 기존 행의 빈 칸은 새 값으로 채움. 반환: 추가 건수.
+
+    응답 형식이 날마다 JSON/HTML 로 바뀌면 같은 허가가 서로 다른 키(접수 키 vs 주소|처리일|목적)로 두 번 쌓이므로
+    내용 키(sgg·동·지번·처리일·목적)로도 맞춘다: HTML 대체키 행은 같은 내용의 행이 이미 있으면 추가하지 않고,
+    접수 키 행이 들어오면 같은 내용의 HTML 대체키 행을 그 행으로 교체한다(cid·first_seen 유지).
+    """
     today = str(today or today_str())[:10]
     added = 0
+    by_content: dict[tuple, list[str]] = {}
+    for k, r in existing.items():
+        by_content.setdefault(_content_key(r), []).append(k)
     for row in new:
         k = row.get("key")
         if not k:
             continue
         cur = existing.get(k)
-        if cur is None:
-            r = dict(row)
-            r["first_seen"] = r.get("first_seen") or today
-            existing[k] = r
-            added += 1
+        if cur is not None:
+            _fill(cur, row)
             continue
-        for f, v in row.items():
-            if f in ("cid", "cname", "first_seen"):
-                continue
-            if v and not cur.get(f):
-                cur[f] = v
-        if row.get("job_gbn") and row["job_gbn"] != cur.get("job_gbn"):
-            cur["job_gbn"] = row["job_gbn"]     # 미결 → 허가 등 처리 결과 갱신
+        ck = _content_key(row)
+        dups = [x for x in by_content.get(ck, []) if x in existing]
+        if dups and not _is_acc_key(k):
+            _fill(existing[dups[0]], row)              # HTML 폴백으로 본 같은 허가 → 중복 아님
+            continue
+        html_dups = [x for x in dups if not _is_acc_key(x)]
+        r = dict(row)
+        if html_dups:                                  # 접수 키가 들어왔으니 대체키 행을 교체
+            old = existing.pop(html_dups[0])
+            by_content[ck] = [x for x in by_content[ck] if x != html_dups[0]]
+            r["cid"], r["cname"] = old.get("cid", ""), old.get("cname", "")
+            r["first_seen"] = old.get("first_seen") or r.get("first_seen") or today
+            _fill(r, old)
+        else:
+            r["first_seen"] = r.get("first_seen") or today
+            added += 1
+        existing[k] = r
+        by_content.setdefault(ck, []).append(k)
     return added
 
 
@@ -600,7 +681,7 @@ def match_permits(permits: dict[str, dict], complexes: dict[str, dict], live: di
     by_bon: dict[tuple[str, str, str], list[dict]] = {}
     for c in complexes.values():
         sgg, umd, jib = c.get("sgg", ""), (c.get("umd") or "").strip(), (c.get("jibun") or "").strip()
-        if not (sgg and umd):
+        if not (sgg and umd and c.get("cid")):
             continue
         grp = base.group_of(sgg, live)
         bon, bu = _norm_jibun(jib)

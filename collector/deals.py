@@ -54,9 +54,15 @@ def floor_of(s: str | None) -> int | None:
     return int(v)
 
 
+_CID_UNSAFE = re.compile(r"[^0-9A-Za-z가-힣\-_.]")
+
+
 def complex_id(group: str, umd: str, jibun: str, build_year: str) -> str:
+    """단지 키 '{묶음}-{법정동}-{지번}-{건축년도}'. 사이트 파일 이름(data/c/<cid>.json)이 되므로
+    외부 응답 문자열에서 경로 구분자·'..' 같은 것은 '_' 로 바꾼다."""
     j = (jibun or "").strip().replace(" ", "")
-    return f"{group}-{umd}-{j}-{build_year}"
+    parts = [_CID_UNSAFE.sub("_", str(x or "")).replace("..", "_") for x in (umd, j, build_year)]
+    return f"{group}-{parts[0]}-{parts[1]}-{parts[2]}"
 
 
 def normalize(raw: dict, sgg: str, group: str) -> dict | None:

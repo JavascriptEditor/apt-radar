@@ -73,11 +73,16 @@ if ($clean1 -and $clean2) {
 
 # ---- 3) data 브랜치 worktree (data\ 폴더)
 if (-not (Test-Path "data\.git")) {
-    if (Test-Path "data") { Remove-Item -Recurse -Force "data" }
     & git ls-remote --exit-code --heads origin data 2>&1 | Out-Null
     if ($LASTEXITCODE -ne 0) {
         Log "원격에 data 브랜치가 없습니다. 먼저 GitHub Actions 에서 수집을 한 번 실행하세요."
         exit 3
+    }
+    if (Test-Path "data") {
+        # worktree 가 아닌 data\ 가 이미 있음(로컬 수집 결과 등) → 지우지 않고 옆으로 옮긴다
+        $bak = "data.local-" + (Get-Date -Format "yyyyMMdd-HHmmss")
+        Log "data\ 가 git worktree 가 아니어서 $bak 로 옮깁니다 (필요 없으면 직접 지우세요)"
+        Move-Item "data" $bak
     }
     & git fetch -q origin data:data --update-head-ok 2>&1 | Out-Null
     if ($LASTEXITCODE -ne 0) { Run git @("fetch", "-q", "origin", "data") -Quiet | Out-Null }
@@ -85,6 +90,7 @@ if (-not (Test-Path "data\.git")) {
 }
 Push-Location data
 try {
+    & git rebase --abort 2>&1 | Out-Null   # 이전 실행이 rebase 도중 멈췄으면 정리
     Run git @("fetch", "-q", "origin", "data") -Quiet | Out-Null
     Run git @("reset", "-q", "--hard", "origin/data") -Quiet | Out-Null
     Log ("data 브랜치: " + (& git log -1 --format='%h %cd' --date=short))
@@ -103,10 +109,19 @@ $region = if ($env:REGION_FILTER) { $env:REGION_FILTER } else { "전체" }
 $maxCalls = if ($env:NAVER_MAX_CALLS) { $env:NAVER_MAX_CALLS } else { "1500" }
 Log "네이버 매물 수집 시작 (REGION_FILTER=$region, NAVER_MAX_CALLS=$maxCalls)"
 $out = & $Venv -m collector listings 2>&1
+$rc = $LASTEXITCODE
 $result = ($out | Select-Object -Last 1)
 Log "결과: $result"
+if ($rc -ne 0) {
+    $out | ForEach-Object { Write-Host $_ }
+    Log "매물 수집이 비정상 종료했습니다(exit $rc). 커밋하지 않습니다 — 위 오류 메시지를 확인하세요."
+    exit 4
+}
 if ("$result" -match '"status": "blocked') {
     Log "네이버가 요청을 막았습니다. 몇 시간 뒤 다시 시도하거나 NAVER_DELAY_SEC 를 늘리세요."
+}
+if ("$result" -match '"status": "skipped') {
+    Log "직전 수집이 최근이라 건너뛰었습니다 (LISTINGS_MIN_INTERVAL_MIN)."
 }
 
 # ---- 6) 커밋·푸시
@@ -119,8 +134,22 @@ try {
     Run git @("-c", "user.name=collector-home", "-c", "user.email=collector-home@users.noreply.github.com",
               "commit", "-qm", "listings(home) $stamp") -Quiet | Out-Null
     if ($env:NO_PUSH -eq "1") { Log "NO_PUSH=1: 푸시 생략"; exit 0 }
-    # Actions 커밋이 먼저 들어갔으면 그 위에 얹는다(충돌 시 집 PC 결과 우선)
-    & git pull -q --rebase -X theirs origin data 2>&1 | Out-Null
-    Run git @("push", "-q", "origin", "HEAD:data") -Quiet | Out-Null
+    # Actions 커밋이 먼저 들어갔으면 그 위에 얹는다(충돌 시 집 PC 결과 우선). rebase 가 멈추면 되돌리고 재시도(최대 3회)
+    $pushed = $false
+    for ($i = 1; $i -le 3; $i++) {
+        & git pull -q --rebase -X theirs origin data 2>&1 | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            & git push -q origin HEAD:data 2>&1 | Out-Null
+            if ($LASTEXITCODE -eq 0) { $pushed = $true; break }
+        } else {
+            & git rebase --abort 2>&1 | Out-Null
+        }
+        Log "푸시 실패($i/3) — 잠시 뒤 다시 시도"
+        Start-Sleep -Seconds (10 * $i)
+    }
+    if (-not $pushed) {
+        Log "푸시에 실패했습니다. 커밋은 로컬 data 브랜치에 남아 있으니 다음 실행에서 다시 시도합니다."
+        exit 5
+    }
     Log "푸시 완료. 다음 Actions 실행이 사이트를 다시 만듭니다 (바로 반영하려면 Actions 에서 mode=export 실행)."
 } finally { Pop-Location }

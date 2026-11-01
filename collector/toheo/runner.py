@@ -100,9 +100,10 @@ def run_toheo_sites(*, deep: bool, data_dir: str | os.PathLike, region_filter: s
                               "reached_cutoff": False, "host": None, "warning": None}
         covered = stop_before if info.get("reached_cutoff") else None
         try:
-            st = cs.merge_rows(cases, site, rows, now, covered, bool(info.get("reached_cutoff")))
+            st = cs.merge_rows(cases, site, rows, now, covered, bool(info.get("reached_cutoff")),
+                               close_after_days=deep_days + _env_int("CLOSE_OPEN_AFTER_DAYS", 30))
         except Exception as e:  # noqa: BLE001
-            st = {"new": 0, "updated": 0, "completed_observed": 0, "dropped": 0}
+            st = {"new": 0, "updated": 0, "completed_observed": 0, "dropped": 0, "closed_out": 0}
             info["error"] = f"merge 실패: {e}"
         entry = {
             "at": now.isoformat(timespec="seconds"), "ok": not info.get("error"), "host": info.get("host"),
@@ -121,14 +122,20 @@ def run_toheo_sites(*, deep: bool, data_dir: str | os.PathLike, region_filter: s
         store.save_params(client.params)
         store.save_cases(cases)
 
-    # 서울 허가 내역
+    # 서울 허가 내역 — 어떤 단계가 죽어도 runs/progress 기록은 남긴다
     perm_rec = None
-    want_permits = permits and os.environ.get("PERMITS", "1") == "1"
+    want_permits = permits and (os.environ.get("PERMITS") or "1") == "1"
     seoul = [s for s in sggs if tr.is_seoul(s)]
     if want_permits and seoul:
-        perm_rec = run_permits(store, http, seoul, complexes, now, live=live, discover=discover,
-                               config_dir=config_dir)
+        try:
+            perm_rec = run_permits(store, http, seoul, complexes, now, live=live, discover=discover,
+                                   config_dir=config_dir)
+        except Exception as e:  # noqa: BLE001
+            log.exception("permits 실패")
+            perm_rec = {"at": now.isoformat(timespec="seconds"), "ok": False, "error": f"{type(e).__name__}: {e}",
+                        "fetched": 0, "added": 0, "matched": 0, "by_gu": {}, "total": None, "kinds": {}}
         tlog["permits"] = perm_rec
+        run_rec["errors"] += 0 if perm_rec.get("ok") else 1
     run_rec["http_calls"] = getattr(http, "calls", 0)
     tlog.setdefault("runs", []).append(dict(run_rec))
     tlog["runs"] = tlog["runs"][-20:]
@@ -147,14 +154,25 @@ def run_toheo_sites(*, deep: bool, data_dir: str | os.PathLike, region_filter: s
 def run_permits(store: ToheoStore, http, sggs: list[str], complexes: dict[str, dict], now: dt.datetime,
                 live: dict | None = None, discover: bool = False, config_dir: str | os.PathLike | None = None,
                 days: int | None = None) -> dict:
-    """서울 허가 내역 수집 한 번: fetch → raw 보관 → merge → match → 저장. fetch_log['toheo'].permits 형식 반환."""
+    """서울 허가 내역 수집 한 번: fetch → raw 보관 → merge → match → 저장. fetch_log['toheo'].permits 형식 반환.
+    설정 로드·병합·매칭·저장 어느 단계가 실패해도 예외를 밖으로 내지 않고 ok=False, error 로 기록한다."""
     today_s = now.date().isoformat()
+    rec = {"at": now.isoformat(timespec="seconds"), "ok": False, "error": None, "fetched": 0, "added": 0, "matched": 0,
+           "by_gu": {}, "total": None, "kinds": {}}
     cfg_path = Path(config_dir or CONFIG_DIR) / "seoul_permits.json"
-    cfg = load_config(cfg_path if cfg_path.exists() else None)
+    try:
+        cfg = load_config(cfg_path if cfg_path.exists() else None)
+    except (ValueError, OSError) as e:
+        rec["error"] = f"설정 로드 실패({cfg_path.name}): {e}"
+        log.error("%s", rec["error"])
+        return rec
     sp = SeoulPermits(http, cfg, state_path=store.permit_cfg_path())
     if discover:
-        sp.discover(force=True, today=now.date())
-        sp.save_state()
+        try:
+            sp.discover(force=True, today=now.date())
+            sp.save_state()
+        except Exception as e:  # noqa: BLE001
+            log.warning("discover 실패: %s", e)
     days = days or _env_int("PERMITS_DAYS", int(cfg.get("window_days") or 60))
     backfill = os.environ.get("PERMITS_BACKFILL_FROM") or None
     try:
@@ -167,16 +185,25 @@ def run_permits(store: ToheoStore, http, sggs: list[str], complexes: dict[str, d
                 store.save_raw(today_s, sgg, {"sgg": sgg, "date": today_s, "windows": raws})
             except OSError as e:  # pragma: no cover
                 log.warning("raw 저장 실패 %s: %s", sgg, e)
-    permits = store.load_permits()
-    added = merge_permits(permits, rows, today_s)
-    matched = match_permits(permits, complexes or {}, live)
-    store.save_permits(permits)
+    added = matched = 0
+    permits: dict[str, dict] = {}
+    try:
+        permits = store.load_permits()
+        added = merge_permits(permits, rows, today_s)
+        matched = match_permits(permits, complexes or {}, live)
+        store.save_permits(permits)
+    except Exception as e:  # noqa: BLE001
+        log.exception("permits 병합/매칭/저장 실패")
+        info["ok"] = False
+        info["error"] = f"병합/매칭/저장 실패: {type(e).__name__}: {e}"
     if not info.get("ok"):
         sp.cfg["error"] = info.get("error")
-    sp.save_state()
-    rec = {"at": now.isoformat(timespec="seconds"), "ok": bool(info.get("ok")), "error": info.get("error"),
-           "fetched": len(rows), "added": added, "matched": matched, "by_gu": info.get("by_gu", {}),
-           "total": len(permits), "kinds": info.get("kinds", {})}
+    try:
+        sp.save_state()
+    except OSError as e:  # pragma: no cover
+        log.warning("허가 설정 저장 실패: %s", e)
+    rec.update({"ok": bool(info.get("ok")), "error": info.get("error"), "fetched": len(rows), "added": added,
+                "matched": matched, "by_gu": info.get("by_gu", {}), "total": len(permits), "kinds": info.get("kinds", {})})
     log.info("permits ok=%s fetched=%s added=%s matched=%s err=%s", rec["ok"], len(rows), added, matched,
              info.get("error") or "")
     return rec

@@ -20,6 +20,7 @@ import datetime as dt
 import html
 import json
 import os
+import re
 from pathlib import Path
 from typing import Callable
 
@@ -242,43 +243,90 @@ def _cx_link(site_url: str, cid: str, name: str) -> str:
     return name
 
 
-def format_message(digest: dict, site_url: str, today: str, live: dict | None = None) -> str:
-    """텔레그램 HTML 한 통. 항목이 없으면 빈 문자열."""
+def format_message(digest: dict, site_url: str, today: str, live: dict | None = None,
+                   max_chars: int = TELEGRAM_MAX_CHARS) -> str:
+    """텔레그램 HTML 한 통. 항목이 없으면 빈 문자열.
+
+    길이 제한은 **줄 단위**로 지킨다: 매물·허가 줄을 넣기 전에 남은 길이를 보고, 넘치면 그 줄부터 '… 외 n건' 으로 접는다.
+    (문자 위치에서 자르면 `<a href=…>` 한가운데가 끊겨 텔레그램이 400 'can't parse entities' 를 돌려주고, 같은 항목으로
+    매 실행 같은 자리에서 잘려 영원히 전송되지 않는다)
+    """
     ls, ps, ds = digest.get("listings") or [], digest.get("permits") or [], digest.get("ddays") or []
     if not ls and not ps and not ds:
         return ""
+    tail = ""
+    if site_url:
+        tail = f'\n\n<a href="{html.escape(site_url)}/#alerts">알림 탭 열기</a>'
+    # D-day 줄은 적고 짧으므로 먼저 확보한다
+    dz_lines: list[str] = []
+    if ds:
+        dz_lines.append("")
+        dz_lines.append("<b>토허구역 지정 만료</b>")
+        for d in ds:
+            dz_lines.append(f"• D-{d['daysLeft']} {html.escape(d['title'])} (~{d['end']}, {html.escape(d['renewal'] or '-')})")
+    budget = max_chars - len(tail) - sum(len(x) + 1 for x in dz_lines)
     lines = [f"<b>APT 레이더</b> {today} 요약"]
+    used = len(lines[0])
+
+    def add(line: str) -> bool:
+        nonlocal used
+        if used + 1 + len(line) > budget:
+            return False
+        lines.append(line)
+        used += 1 + len(line)
+        return True
+
     if ls:
-        lines.append("")
-        lines.append(f"<b>급매 매물 {len(ls)}건</b> (자체 등급, 호가 기준)")
+        add("")
+        add(f"<b>급매 매물 {len(ls)}건</b> (자체 등급, 호가 기준)")
+        shown = 0
         for l in ls[:MAX_LISTINGS]:
-            where = " ".join(x for x in (f"{l['dong']}동" if l.get("dong") else "", f"{l['floor']}층" if l.get("floor") else "") if x)
+            where = " ".join(x for x in (f"{html.escape(str(l['dong']))}동" if l.get("dong") else "",
+                                         f"{l['floor']}층" if l.get("floor") else "") if x)
             diff = f" {l['diff'] * 100:+.1f}%" if l.get("diff") is not None else ""
             grade = f"[{l['grade']}]" if l.get("grade") else "[판정없음]"
-            lines.append(f"• {grade} {_cx_link(site_url, l['cid'], l['name'])} {l.get('grp') or '-'}㎡ {where} "
-                         f"{fmt_price(l['price'])}{diff}".replace("  ", " "))
-        if len(ls) > MAX_LISTINGS:
-            lines.append(f"  … 외 {len(ls) - MAX_LISTINGS}건 (사이트 알림 탭)")
+            line = (f"• {grade} {_cx_link(site_url, l['cid'], l['name'])} {l.get('grp') or '-'}㎡ {where} "
+                    f"{fmt_price(l['price'])}{diff}").replace("  ", " ")
+            # '외 n건' 줄 자리(약 30자)를 남겨 둔다
+            if used + 1 + len(line) + 32 > budget or not add(line):
+                break
+            shown += 1
+        if len(ls) > shown:
+            add(f"  … 외 {len(ls) - shown}건 (사이트 알림 탭)")
     if ps:
-        lines.append("")
-        lines.append(f"<b>관심 단지 허가 완료</b> {sum(g['n'] for g in ps)}건 (서울시 공개 자료, 평형·가격 없음)")
+        add("")
+        add(f"<b>관심 단지 허가 완료</b> {sum(g['n'] for g in ps)}건 (서울시 공개 자료, 평형·가격 없음)")
+        shown = 0
         for g in ps[:MAX_PERMITS]:
             purp = ", ".join(f"{k} {v}" for k, v in sorted(g["purposes"].items(), key=lambda kv: -kv[1]))
-            lines.append(f"• {_cx_link(site_url, g['cid'], g['name'])} {g['n']}건 ({html.escape(purp)}) 처리일 {g['last']}")
-        if len(ps) > MAX_PERMITS:
-            lines.append(f"  … 외 {len(ps) - MAX_PERMITS}개 단지")
-    if ds:
-        lines.append("")
-        lines.append("<b>토허구역 지정 만료</b>")
-        for d in ds:
-            lines.append(f"• D-{d['daysLeft']} {html.escape(d['title'])} (~{d['end']}, {html.escape(d['renewal'] or '-')})")
-    if site_url:
-        lines.append("")
-        lines.append(f'<a href="{html.escape(site_url)}/#alerts">알림 탭 열기</a>')
-    text = "\n".join(lines)
-    if len(text) > TELEGRAM_MAX_CHARS:
-        text = text[:TELEGRAM_MAX_CHARS - 2] + " …"
+            line = f"• {_cx_link(site_url, g['cid'], g['name'])} {g['n']}건 ({html.escape(purp)}) 처리일 {g['last']}"
+            if used + 1 + len(line) + 32 > budget or not add(line):
+                break
+            shown += 1
+        if len(ps) > shown:
+            add(f"  … 외 {len(ps) - shown}개 단지")
+    lines += dz_lines
+    text = "\n".join(lines) + tail
+    if len(text) > max_chars:   # 방어: 태그 밖에서만 자르도록 마지막 줄바꿈까지 되돌린다
+        cut = text[:max_chars - 2]
+        text = cut[:cut.rfind("\n")] + "\n…" if "\n" in cut else html.escape(strip_tags(cut)) + " …"
     return text
+
+
+_RE_TAG = re.compile(r"<[^>]+>")
+
+
+def strip_tags(text: str) -> str:
+    """HTML 태그를 벗기고 엔티티를 되돌린 평문(parse_mode 없이 재전송할 때)."""
+    return html.unescape(_RE_TAG.sub("", text or ""))
+
+
+def _mask_token(s: str, token: str) -> str:
+    """오류 메시지에 봇 토큰(URL 경로 /bot<token>/)이 섞여 나오지 않게 가린다."""
+    s = str(s or "")
+    if token and len(token) >= 8:
+        s = s.replace(token, "***")
+    return re.sub(r"/bot[^/\s]+/", "/bot***/", s)
 
 
 # ----------------------------------------------------------------------------- 전송
@@ -288,18 +336,28 @@ def send_telegram(token: str, chat_id: str, text: str, api_base: str | None = No
 
     base = (api_base or os.environ.get("TELEGRAM_API_BASE") or TELEGRAM_API).rstrip("/")
     url = f"{base}/bot{token}/sendMessage"
-    payload = {"chat_id": chat_id, "text": text, "parse_mode": "HTML", "disable_web_page_preview": True}
-    try:
-        r = requests.post(url, json=payload, timeout=timeout)
-    except requests.RequestException as e:  # 네트워크 오류
-        return {"ok": False, "error": f"{type(e).__name__}: {e}", "status": None}
-    try:
-        body = r.json()
-    except ValueError:
-        body = {}
-    ok = bool(r.status_code == 200 and body.get("ok", True))
-    err = None if ok else (body.get("description") or f"HTTP {r.status_code}")
-    return {"ok": ok, "error": err, "status": r.status_code}
+
+    def post(payload: dict) -> dict:
+        try:
+            r = requests.post(url, json=payload, timeout=timeout)
+        except requests.RequestException as e:  # 네트워크 오류 — 메시지에 URL(토큰) 이 포함되므로 가린다
+            return {"ok": False, "error": _mask_token(f"{type(e).__name__}: {e}", token), "status": None}
+        try:
+            body = r.json()
+        except ValueError:
+            body = {}
+        ok = bool(r.status_code == 200 and body.get("ok", True))
+        err = None if ok else _mask_token(body.get("description") or f"HTTP {r.status_code}", token)
+        return {"ok": ok, "error": err, "status": r.status_code}
+
+    res = post({"chat_id": chat_id, "text": text, "parse_mode": "HTML", "disable_web_page_preview": True})
+    if not res["ok"] and res.get("status") == 400 and "parse" in str(res.get("error") or "").lower():
+        # HTML 엔티티 오류(외부 문자열의 '<' 등) → 태그를 벗긴 평문으로 한 번 더(알림이 영구 중단되지 않게)
+        res2 = post({"chat_id": chat_id, "text": strip_tags(text), "disable_web_page_preview": True})
+        res2["fallback"] = "plain"
+        res2["firstError"] = res["error"]
+        return res2
+    return res
 
 
 def send_digest(engine: Engine, site_url: str | None, cfg_path: str | os.PathLike | None = "config/alerts.json",

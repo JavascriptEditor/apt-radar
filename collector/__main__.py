@@ -16,11 +16,15 @@ import argparse
 import json
 import os
 import sys
+import traceback
 
-from .engine import Engine
+from .engine import Engine, now_kst
 from .molit import MolitClient
-from .naver import NaverClient, load_cfg
+from .naver import CallBudgetExceeded, NaverClient, load_cfg
 from .store import Store
+
+# 단지 하나를 조회하는 도중 클라이언트 상한에 걸려 그 단지가 통째로 버려지는 일을 줄이기 위한 여유 호출 수
+NAVER_CALL_MARGIN = 60
 
 
 def env_int(name: str, default: int) -> int:
@@ -37,17 +41,31 @@ def build(args, need_molit=False, need_naver=False) -> Engine:
     if need_molit:
         if not key:
             sys.exit("MOLIT_SERVICE_KEY 가 없습니다 (공공데이터포털 인증키).")
-        molit = MolitClient(key, url=os.environ.get("MOLIT_API_URL"), call_budget=env_int("DAILY_CALL_LIMIT", 9500),
+        molit = MolitClient(key, url=os.environ.get("MOLIT_API_URL") or None, call_budget=env_int("DAILY_CALL_LIMIT", 9500),
                             calls_used=0)
     if need_naver:
         cfg_path = os.environ.get("NAVER_CFG") or (args.naver_cfg if hasattr(args, "naver_cfg") else None)
+        # 호출 상한은 엔진(run_listings/run_match 의 max_calls)이 관리한다. 클라이언트 상한은 그보다 조금 큰 안전장치.
+        engine_max = getattr(args, "max_calls", None) or env_int("NAVER_MAX_CALLS", 1500)
         naver = NaverClient(load_cfg(cfg_path), state_path=os.path.join(args.data, "naver_cfg.json"),
-                            max_calls=env_int("NAVER_MAX_CALLS", 1500))
+                            max_calls=engine_max + NAVER_CALL_MARGIN)
     else:
         # export 에서 링크 형식을 쓰기 위해 설정만 로드
         naver = NaverClient(load_cfg(os.environ.get("NAVER_CFG")), state_path=os.path.join(args.data, "naver_cfg.json"),
                             max_calls=0)
-    return Engine(store, molit, naver, region_filter=args.region)
+    return Engine(store, molit, naver, region_filter=args.region or None)
+
+
+def record_error(eng: Engine, key: str, e: BaseException) -> None:
+    """listings/toheo 가 예외로 죽어도 fetch_log 에 'error: …' 를 남겨 사이트(내정보)에서 보이게 한다."""
+    traceback.print_exc()
+    prev = eng.fetch_log.get(key) or {}
+    eng.fetch_log[key] = {**prev, "at": now_kst().isoformat(timespec="seconds"), "status": f"error: {type(e).__name__}: {e}"[:300]}
+    try:
+        eng._save()
+    except Exception:  # noqa: BLE001
+        traceback.print_exc()
+    print(f"::error::{key} 수집 실패: {type(e).__name__}: {e}")
 
 
 def main(argv=None) -> int:
@@ -58,12 +76,16 @@ def main(argv=None) -> int:
 
     s = sub.add_parser("run")
     s.add_argument("--reserve", type=int, default=env_int("CALL_RESERVE", 800))
+    s.add_argument("--max-sec", type=int, default=env_int("TRADES_MAX_SEC", 0),
+                   help="실거래 적재 시간 상한(초, 0=없음). Actions 의 다음 예약 실행과 겹치지 않게")
     s.add_argument("--no-model", action="store_true")
     s.add_argument("--no-match", action="store_true")
     s.add_argument("--partial", action="store_true", help="적재 중인 묶음도 모델 적합")
     s = sub.add_parser("listings")
     s.add_argument("--max-calls", type=int, default=env_int("NAVER_MAX_CALLS", 1500))
     s.add_argument("--max-sec", type=int, default=env_int("NAVER_MAX_SEC", 2400))
+    s.add_argument("--min-interval", type=int, default=env_int("LISTINGS_MIN_INTERVAL_MIN", 0),
+                   help="직전 성공 수집이 이 분 안이면 건너뜀(0=항상 수집). Actions·집 PC 이중 수집 방지")
     s = sub.add_parser("model")
     s.add_argument("--partial", action="store_true")
     s.add_argument("--group", action="append")
@@ -89,7 +111,7 @@ def main(argv=None) -> int:
     if args.cmd == "run":
         eng = build(args, need_molit=True, need_naver=not args.no_match)
         print(json.dumps(eng.run_scan(), ensure_ascii=False))
-        summary = eng.run_trades(reserve=args.reserve)
+        summary = eng.run_trades(reserve=args.reserve, max_sec=args.max_sec)
         print(json.dumps({k: (v if not isinstance(v, list) else len(v)) for k, v in summary.items()}, ensure_ascii=False))
         if not args.no_model:
             print(json.dumps(eng.run_model(partial=args.partial), ensure_ascii=False))
@@ -98,7 +120,12 @@ def main(argv=None) -> int:
         return 0
     if args.cmd == "listings":
         eng = build(args, need_naver=True)
-        print(json.dumps(eng.run_listings(max_calls=args.max_calls, max_sec=args.max_sec), ensure_ascii=False))
+        try:
+            res = eng.run_listings(max_calls=args.max_calls, max_sec=args.max_sec, min_interval_min=args.min_interval)
+        except Exception as e:  # noqa: BLE001 — 상태를 남기고 비정상 종료 코드로 알린다
+            record_error(eng, "listings", e)
+            return 2
+        print(json.dumps(res, ensure_ascii=False))
         return 0
     if args.cmd == "model":
         eng = build(args)
@@ -128,8 +155,12 @@ def main(argv=None) -> int:
         # MOLIT_SERVICE_KEY 없이도 동작(단지 매칭은 complexes.csv 가 있을 때만 채워짐)
         from .toheo.runner import run_toheo
         eng = build(args)
-        res = run_toheo(eng, deep=args.deep, region_filter=args.toheo_region or args.region,
-                        permits=not args.no_permits, discover=args.discover)
+        try:
+            res = run_toheo(eng, deep=args.deep, region_filter=args.toheo_region or args.region,
+                            permits=not args.no_permits, discover=args.discover)
+        except Exception as e:  # noqa: BLE001
+            record_error(eng, "toheo", e)
+            return 2
         print(json.dumps({k: v for k, v in res.items() if k != "site_info"}, ensure_ascii=False))
         for sid, info in (res.get("site_info") or {}).items():
             print(f"  {sid}: ok={info.get('ok')} host={info.get('host')} pages={info.get('pages')} "
@@ -141,16 +172,19 @@ def main(argv=None) -> int:
         return 0
     if args.cmd == "probe":
         nv = NaverClient(load_cfg(os.environ.get("NAVER_CFG")), max_calls=20)
-        if args.cortar:
-            cx = nv.complexes(args.cortar)
-            print(f"단지 {len(cx)}건 (endpoint={nv.state.get('complexes_by_cortar')})")
-            for c in cx[:10]:
-                print(" ", json.dumps(c, ensure_ascii=False))
-        if args.complex:
-            arts = nv.articles(args.complex, max_pages=2)
-            print(f"매물 {len(arts)}건 (endpoint={nv.state.get('articles')})")
-            for a in arts[:10]:
-                print(" ", json.dumps(a, ensure_ascii=False))
+        try:
+            if args.cortar:
+                cx = nv.complexes(args.cortar)
+                print(f"단지 {len(cx)}건 (endpoint={nv.state.get('complexes_by_cortar')})")
+                for c in cx[:10]:
+                    print(" ", json.dumps(c, ensure_ascii=False))
+            if args.complex:
+                arts = nv.articles(args.complex, max_pages=2)
+                print(f"매물 {len(arts)}건 (endpoint={nv.state.get('articles')})")
+                for a in arts[:10]:
+                    print(" ", json.dumps(a, ensure_ascii=False))
+        except CallBudgetExceeded as e:
+            print("호출 상한:", e)
         if nv.blocked_reason:
             print("차단:", nv.blocked_reason)
         for line in nv.log:
