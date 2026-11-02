@@ -1278,5 +1278,28 @@
    "complexes_by_cortar 실패: error {'cortarNo': '1111018000'}",
    "error https://m.land.naver.com/complex/ajax/complexListByCortarNo?cortarNo=1111018200&rletTpCd=APT:ABYG:JGC: ReadTimeout: HTTPSConnectionPool(host='m.land.naver.com', port=443): Read timed out. (read timeout=20)"
   ]
+ },
+ "listings": {
+  "at": "2026-11-03T03:49:20+09:00",
+  "complexes": 0,
+  "total": 0,
+  "status": "ok",
+  "calls": 0,
+  "n": 0,
+  "nAll": 0,
+  "nGone": 0,
+  "pruned": 0,
+  "prunedEvents": 0,
+  "endpoint": null,
+  "new": 0,
+  "relist": 0,
+  "price": 0,
+  "gone": 0,
+  "swap": 0,
+  "unmatched": 0,
+  "truncated": 0,
+  "stale": 0,
+  "suspect": 0,
+  "failed": 0
  }
 }

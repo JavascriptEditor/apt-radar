@@ -2,7 +2,7 @@
  "date": "2026-11-03",
  "callsToday": 8700,
  "scanAt": "202611",
- "updatedAt": "2026-11-03T02:54:48+09:00",
+ "updatedAt": "2026-11-03T03:49:20+09:00",
  "backfill": {
   "11110": {
    "done": true,
@@ -286,5 +286,6 @@
  },
  "regionsDone": {
   "11": "2026-11-03"
- }
+ },
+ "listingsSuspect": {}
 }
