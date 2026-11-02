@@ -238,6 +238,10 @@ Secrets: `MOLIT_SERVICE_KEY`(필수), `NAVER_LAND_TOKEN`·`TELEGRAM_BOT_TOKEN`·
 `TRADES_MAX_SEC`(기본 100분)로 끊어 다음 예약과 겹치지 않게 했습니다. 수집 스텝이 예외로 죽으면 export·커밋·배포는 그대로 진행하고(진행 상황·호출 수 보존)
 마지막 스텝이 job 을 실패로 표시하며, 내정보 탭의 상태가 `error: …` 로 바뀝니다.
 
+국토부 API의 HTTP 429는 요청 제한입니다. `Retry-After`에 맞춰 최대 4회 재시도하고, 제한이 계속되거나 대기 안내가 60초보다 길면
+이번 실행은 `rate_limit` 상태로 마칩니다. 성공적으로 받은 달과 호출 수를 저장하고 다음 실행에서 실패한 달부터 이어갑니다.
+이 경우 export·배포는 계속 진행합니다. 한도 자체가 늘어나는 것은 아니므로 제한이 반복되면 공공데이터포털의 승인된 호출량도 확인하세요.
+
 설정 파일(`config/`): `naver.json`(네이버 주소·필드), `designations.json`(지정 현황, 직접 관리), `seoul_permits.json`(서울 허가 조회 요청),
 `saeol_params.example.json`(새올 페이지 파라미터 수동 지정), `alerts.example.json`(알림).
 

@@ -110,8 +110,12 @@ def main(argv=None) -> int:
 
     if args.cmd == "run":
         eng = build(args, need_molit=True, need_naver=not args.no_match)
-        print(json.dumps(eng.run_scan(), ensure_ascii=False))
-        summary = eng.run_trades(reserve=args.reserve, max_sec=args.max_sec)
+        try:
+            print(json.dumps(eng.run_scan(), ensure_ascii=False))
+            summary = eng.run_trades(reserve=args.reserve, max_sec=args.max_sec)
+        except Exception as e:
+            record_error(eng, "tradesRun", e)
+            return 2
         print(json.dumps({k: (v if not isinstance(v, list) else len(v)) for k, v in summary.items()}, ensure_ascii=False))
         if not args.no_model:
             print(json.dumps(eng.run_model(partial=args.partial), ensure_ascii=False))

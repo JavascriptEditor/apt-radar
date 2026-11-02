@@ -9,6 +9,8 @@ import os
 import time
 import urllib.parse
 import xml.etree.ElementTree as ET
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 
 import requests
 
@@ -18,6 +20,10 @@ ROWS = 1000
 
 class BudgetExhausted(Exception):
     """하루 호출 한도(설정값 또는 API 응답 코드 22)에 도달."""
+
+
+class RateLimited(BudgetExhausted):
+    """HTTP 429가 계속되어 이번 실행의 요청을 중단. 다음 실행에서 재개 가능."""
 
 
 class ApiError(Exception):
@@ -34,7 +40,7 @@ def normalize_key(key: str) -> str:
 class MolitClient:
     def __init__(self, service_key: str, url: str | None = None, call_budget: int = 9500,
                  calls_used: int = 0, timeout: int = 30, session: requests.Session | None = None,
-                 sleep: float = 0.05):
+                 sleep: float = 0.2):
         self.key = normalize_key(service_key)
         self.url = url or os.environ.get("MOLIT_API_URL") or DEFAULT_URL
         self.budget = int(call_budget)
@@ -43,6 +49,7 @@ class MolitClient:
         self.s = session or requests.Session()
         self.sleep = sleep
         self.limited = False  # API 가 한도 초과를 알려 왔는지
+        self.limit_error: BudgetExhausted | None = None
 
     # ------------------------------------------------------------------
     def remaining(self) -> int:
@@ -50,11 +57,13 @@ class MolitClient:
 
     def _get(self, params: dict) -> ET.Element:
         if self.calls >= self.budget or self.limited:
-            raise BudgetExhausted(f"calls={self.calls} budget={self.budget} limited={self.limited}")
+            raise self.limit_error or BudgetExhausted(f"calls={self.calls} budget={self.budget} limited={self.limited}")
         q = dict(params)
         q["serviceKey"] = self.key
         last_err: Exception | None = None
         for attempt in range(5):
+            if self.calls >= self.budget:
+                raise BudgetExhausted(f"calls={self.calls} budget={self.budget}")
             try:
                 self.calls += 1
                 r = self.s.get(self.url, params=q, timeout=self.timeout)
@@ -62,7 +71,27 @@ class MolitClient:
                 last_err = e
                 time.sleep(1.5 * (attempt + 1))
                 continue
-            if r.status_code == 429 or r.status_code >= 500:
+            if r.status_code == 429:
+                delay = 2.0 * (attempt + 1)
+                retry_after = (getattr(r, "headers", {}) or {}).get("Retry-After", "")
+                try:
+                    delay = max(delay, float(retry_after))
+                except (TypeError, ValueError):
+                    try:
+                        when = parsedate_to_datetime(retry_after)
+                        if when.tzinfo is None:
+                            when = when.replace(tzinfo=timezone.utc)
+                        delay = max(delay, (when - datetime.now(timezone.utc)).total_seconds())
+                    except (TypeError, ValueError, OverflowError):
+                        pass
+                # 긴 Retry-After는 기다림을 줄여 다시 요청하지 않고 다음 실행으로 넘긴다.
+                if attempt == 4 or delay > 60:
+                    self.limited = True
+                    self.limit_error = RateLimited("HTTP 429 요청 제한 — 진행 상황 저장 후 다음 실행에서 재개")
+                    raise self.limit_error
+                time.sleep(delay)
+                continue
+            if r.status_code >= 500:
                 last_err = ApiError(f"HTTP {r.status_code}")
                 time.sleep(2.0 * (attempt + 1))
                 continue

@@ -17,7 +17,7 @@ from collections import defaultdict
 from . import regions
 from .deals import normalize
 from .model import GroupModel, ym_add
-from .molit import BudgetExhausted, MolitClient
+from .molit import BudgetExhausted, MolitClient, RateLimited
 from .naver import Blocked, CallBudgetExceeded, NaverClient, match_complexes
 from .store import Store, group_rows_by_year
 
@@ -299,36 +299,18 @@ class Engine:
                 if st["done"]:
                     continue
                 batch: dict[str, list[dict]] = {}
-                cur_year = st["cursor"][:4]
-                empty_run = 0   # 연속 빈 달(신설 구 코드는 분구 전 이력이 없으므로 2006년까지 헛되이 내려가지 않게)
-                while not st["done"]:
-                    if self.molit.remaining() <= reserve:
-                        summary["stopped"] = "reserve"
-                        break
-                    if timed_out():
-                        summary["stopped"] = "time"
-                        break
-                    ym = st["cursor"]
-                    if ym[:4] != cur_year:
+                try:
+                    self._backfill_code(code, st, batch, summary, reserve, timed_out)
+                finally:
+                    # 커서가 전진한 달은 예외가 나도 반드시 저장한다.
+                    if batch:
                         self._merge_months(code, batch, refresh=False)
-                        batch = {}
-                        cur_year = ym[:4]
-                    batch[ym] = self._fetch_month(code, ym)
-                    summary["backfilled"][code] = summary["backfilled"].get(code, 0) + 1
-                    empty_run = empty_run + 1 if not batch[ym] else 0
-                    nxt = ym_add(ym, -1)
-                    if nxt < BACKFILL_START or (code in self.live and empty_run >= LIVE_EMPTY_STOP_MONTHS):
-                        st["done"] = True
-                        st["doneAt"] = today_str()
-                        if nxt >= BACKFILL_START:
-                            st["note"] = f"자동 탐색 코드: 빈 달 {empty_run}개월 연속 — 그 이전 이력은 묶음의 구 코드에 있음"
-                            self.log(f"[trades] {code} 적재 종료({st['note']})")
-                    st["cursor"] = nxt
-                if batch:
-                    self._merge_months(code, batch, refresh=False)
-                self._save()
+                    self._save()
                 if summary["stopped"]:
                     break
+        except RateLimited as e:
+            summary["stopped"] = f"rate_limit: {e}"
+            self.log(f"[trades] 요청 제한: {e}")
         except BudgetExhausted as e:
             summary["stopped"] = f"budget: {e}"
             self.log(f"[trades] 한도 도달: {e}")
@@ -337,6 +319,35 @@ class Engine:
                                        "calls": self.molit.calls, **{k: (v if not isinstance(v, list) else len(v)) for k, v in summary.items()}}
         self._save()
         return summary
+
+    def _backfill_code(self, code: str, st: dict, batch: dict, summary: dict,
+                       reserve: int, timed_out) -> None:
+        """받은 달의 행을 batch에 남긴다. 호출자는 예외 시에도 저장해야 한다."""
+        cur_year = st["cursor"][:4]
+        empty_run = 0
+        while not st["done"]:
+            if self.molit.remaining() <= reserve:
+                summary["stopped"] = "reserve"
+                break
+            if timed_out():
+                summary["stopped"] = "time"
+                break
+            ym = st["cursor"]
+            if ym[:4] != cur_year:
+                self._merge_months(code, batch, refresh=False)
+                batch.clear()
+                cur_year = ym[:4]
+            batch[ym] = self._fetch_month(code, ym)
+            summary["backfilled"][code] = summary["backfilled"].get(code, 0) + 1
+            empty_run = empty_run + 1 if not batch[ym] else 0
+            nxt = ym_add(ym, -1)
+            if nxt < BACKFILL_START or (code in self.live and empty_run >= LIVE_EMPTY_STOP_MONTHS):
+                st["done"] = True
+                st["doneAt"] = today_str()
+                if nxt >= BACKFILL_START:
+                    st["note"] = f"자동 탐색 코드: 빈 달 {empty_run}개월 연속 — 그 이전 이력은 묶음의 구 코드에 있음"
+                    self.log(f"[trades] {code} 적재 종료({st['note']})")
+            st["cursor"] = nxt
 
     def _update_region_done(self) -> None:
         bf = self.progress.get("backfill", {})
@@ -364,6 +375,7 @@ class Engine:
         probe_ym = ym_add(month, -1)
         known = {r["code"] for r in regions.REGIONS} | set(self.live)
         found = {}
+        stopped = False
         try:
             for rg in regions.SCAN_RANGES:
                 for n in range(rg["start"], rg["end"] + 1):
@@ -382,8 +394,9 @@ class Engine:
                     found[code] = self.live[code]
                     self.log(f"[scan] 새 코드 {code} → {name} ({len(rows)}건)")
         except BudgetExhausted:
-            pass
-        self.progress["scanAt"] = month
+            stopped = True
+        if not stopped:
+            self.progress["scanAt"] = month
         self.store.write_json("regions_live.json", self.live)
         self._save()
         return {"found": found}
