@@ -30,6 +30,10 @@ class CallBudgetExceeded(Exception):
 
 
 # 중개사 자유 입력 설명(desc)에 섞여 들어오는 연락처·이메일은 저장하지 않는다(공개 data 브랜치에 그대로 실리므로).
+# 연속 연결 실패(타임아웃·리셋·거부)가 이만큼이면 '차단' 으로 보고 즉시 멈춘다. GitHub Actions 에서 네이버가
+# TCP 단계에서 막힌 날은 모든 호출이 타임아웃이라, 이게 없으면 400개 동 × 20초 = 2시간 넘게 헛돈다.
+CONN_FAIL_BLOCK = 3
+
 _RE_PHONE = re.compile(r"(?<!\d)0\d{1,2}[-. ]?\d{3,4}[-. ]?\d{4}(?!\d)")
 _RE_EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
 
@@ -122,6 +126,7 @@ class NaverClient:
         self.max_calls = max_calls
         self.blocked_reason = ""
         self.empty_streak = 0
+        self.conn_fail = 0  # 연속 연결 실패(타임아웃·리셋) 수 — CONN_FAIL_BLOCK 이면 Blocked
         self.state_path = Path(state_path) if state_path else None
         self.state = {"complexes_by_cortar": None, "articles": None}
         if self.state_path and self.state_path.exists():
@@ -170,14 +175,23 @@ class NaverClient:
             else:
                 params = {ep["next_param"]: cursor if isinstance(cursor, str) else json.dumps(cursor, ensure_ascii=False)}
         self.calls += 1
+        # 연결 타임아웃은 8초면 충분하다(응답 자체는 self.timeout). GitHub Actions 에서 네이버가 TCP 단계에서
+        # 막히면 매 호출이 20초씩 타임아웃되므로, 연속 연결 실패 CONN_FAIL_BLOCK 회면 '차단' 으로 간주해 멈춘다.
+        tmo = (min(8, self.timeout), self.timeout)
         try:
             if method == "POST":
-                r = self.s.post(url, headers=headers, json=body, params=params, timeout=self.timeout)
+                r = self.s.post(url, headers=headers, json=body, params=params, timeout=tmo)
             else:
-                r = self.s.get(url, headers=headers, params=params, timeout=self.timeout)
+                r = self.s.get(url, headers=headers, params=params, timeout=tmo)
         except requests.RequestException as e:
-            self.log.append(f"error {url}: {e}")
+            self.conn_fail += 1
+            self.log.append(f"error {url}: {type(e).__name__}: {str(e)[:160]}")
+            if self.conn_fail >= CONN_FAIL_BLOCK:
+                self.blocked_reason = (f"연결 실패 {self.conn_fail}회 연속 ({type(e).__name__}; "
+                                       f"GitHub Actions 해외 IP 차단 추정 — 집 PC 수집을 쓰세요)")
+                raise Blocked(self.blocked_reason)
             return None, "error"
+        self.conn_fail = 0
         self._sleep()
         if r.status_code in (403, 429) or r.status_code >= 500:
             if r.status_code in (403, 429):

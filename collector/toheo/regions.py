@@ -130,8 +130,18 @@ def base_code(sgg: str) -> str:
     return sgg.split(":")[0]
 
 
+# 화성시 분구 뒤 실거래 API 가 쓰는 신설 구 코드(탐색으로 자동 발견됨). 토허 지역 id 는 계속 '41590' / '41590:dongtan'.
+HWASEONG_DONGTAN_CODE = "41597"
+HWASEONG_SUB_CODES = {"41591", "41593", "41595", "41597"}
+
+
 def toheo_sgg_for(sgg: str, umd: str | None = None) -> str:
-    """단지(sgg, 법정동) → 토허 지역 id. 화성시 동탄 법정동이면 '41590:dongtan'."""
+    """단지(sgg, 법정동) → 토허 지역 id. 화성시 동탄 법정동(또는 신설 동탄구 코드 41597)이면 '41590:dongtan',
+    그 밖의 화성 신설 구 코드는 '41590'."""
+    if sgg == HWASEONG_DONGTAN_CODE:
+        return DONGTAN_KEY
+    if sgg in HWASEONG_SUB_CODES:
+        sgg = "41590"
     if sgg == "41590" and umd and umd in DONGTAN_DONGS:
         return DONGTAN_KEY
     return sgg

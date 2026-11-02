@@ -599,7 +599,8 @@ def _export_toheo(engine: Engine, th: ToheoData, data: Path, gen: str, today_d: 
                "durationN": st["duration_n"], "deadlineDays": st["deadline_days"], "statusCounts": st["status_counts"],
                "spark": st["spark"], "casesTotal": len(th.cases_by_sgg.get(sgg, [])),
                "fetch": {"ok": flog.get("ok"), "at": flog.get("at"), "pages": flog.get("pages"), "error": flog.get("error"),
-                         "warning": flog.get("warning"), "host": flog.get("host"), "reachedCutoff": flog.get("reached_cutoff")},
+                         "warning": flog.get("warning"), "host": flog.get("host"), "reachedCutoff": flog.get("reached_cutoff"),
+                         "skipped": flog.get("skipped")},
                "permits30": by_sgg30.get(sgg, 0), "permitsTop": top_by_sgg.get(sgg, [])}
         regions_out.append(row)
         if th.stats(sgg):

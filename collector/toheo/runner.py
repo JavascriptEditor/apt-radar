@@ -14,6 +14,7 @@ import datetime as dt
 import json
 import logging
 import os
+import time
 from pathlib import Path
 
 from ..engine import now_kst
@@ -83,14 +84,31 @@ def run_toheo_sites(*, deep: bool, data_dir: str | os.PathLike, region_filter: s
         params[k] = {**params.get(k, {}), **v}
     client = SaeolClient(http, params)
 
+    # 실행 시간 상한(TOHEO_MAX_SEC, 0=없음). Polite 가 있으면 호출 단계에서도 지키고, 사이트 루프에서는 남은 사이트를 건너뛴다.
+    max_sec = _env_int("TOHEO_MAX_SEC", 0)
+    t0 = time.monotonic()
+    if hasattr(http, "set_max_sec"):
+        http.set_max_sec(max_sec)
+
+    def past_deadline() -> bool:
+        return max_sec > 0 and time.monotonic() - t0 > max_sec
+
     sggs = target_sggs(region_filter, live)
     sites = tr.sites_for(sggs)
     tlog = fetch_log.setdefault("toheo", {})
     tlog.setdefault("sites", {})
     run_rec = {"at": now.isoformat(timespec="seconds"), "deep": deep, "sites": len(sites), "new": 0,
-               "completed_observed": 0, "errors": 0, "http_calls": 0}
+               "completed_observed": 0, "errors": 0, "http_calls": 0, "skipped": 0, "max_sec": max_sec}
     site_info: dict[str, dict] = {}
     for site in sites:
+        if past_deadline():
+            # 남은 사이트는 이번 실행에서 건너뛴다. 직전 성공 기록(host·pages 등)은 지우지 않고 skipped 표시만 얹는다.
+            prev = tlog["sites"].get(site.id, {})
+            tlog["sites"][site.id] = {**prev, "skipped": f"시간 상한(TOHEO_MAX_SEC={max_sec}s) — 다음 실행에서 이어감",
+                                      "skippedAt": now.isoformat(timespec="seconds")}
+            site_info[site.id] = tlog["sites"][site.id]
+            run_rec["skipped"] += 1
+            continue
         try:
             if discover:
                 client.discover(site, force=True)
@@ -127,16 +145,29 @@ def run_toheo_sites(*, deep: bool, data_dir: str | os.PathLike, region_filter: s
     want_permits = permits and (os.environ.get("PERMITS") or "1") == "1"
     seoul = [s for s in sggs if tr.is_seoul(s)]
     if want_permits and seoul:
-        try:
-            perm_rec = run_permits(store, http, seoul, complexes, now, live=live, discover=discover,
-                                   config_dir=config_dir)
-        except Exception as e:  # noqa: BLE001
-            log.exception("permits 실패")
-            perm_rec = {"at": now.isoformat(timespec="seconds"), "ok": False, "error": f"{type(e).__name__}: {e}",
-                        "fetched": 0, "added": 0, "matched": 0, "by_gu": {}, "total": None, "kinds": {}}
+        if past_deadline():
+            perm_rec = {"at": now.isoformat(timespec="seconds"), "ok": False,
+                        "error": f"시간 상한(TOHEO_MAX_SEC={max_sec}s) — 이번 실행에서 건너뜀",
+                        "fetched": 0, "added": 0, "matched": 0, "by_gu": {}, "total": None, "kinds": {}, "skipped": True}
+            run_rec["skipped"] += 1
+        else:
+            try:
+                perm_rec = run_permits(store, http, seoul, complexes, now, live=live, discover=discover,
+                                       config_dir=config_dir)
+            except Exception as e:  # noqa: BLE001
+                log.exception("permits 실패")
+                perm_rec = {"at": now.isoformat(timespec="seconds"), "ok": False, "error": f"{type(e).__name__}: {e}",
+                            "fetched": 0, "added": 0, "matched": 0, "by_gu": {}, "total": None, "kinds": {}}
         tlog["permits"] = perm_rec
         run_rec["errors"] += 0 if perm_rec.get("ok") else 1
     run_rec["http_calls"] = getattr(http, "calls", 0)
+    run_rec["sec"] = int(time.monotonic() - t0)
+    # 접속 불가 호스트·계열(해외 IP 차단 추정) 요약 — 사이트 내정보에서 '왜 0건인지' 보이게
+    if hasattr(http, "summary"):
+        net = http.summary()
+        run_rec["unreachable"] = sorted(net.get("unreachable", {}))
+        run_rec["blockedFamilies"] = net.get("blockedFamilies", {})
+        tlog["network"] = {"at": run_rec["at"], **net}
     tlog.setdefault("runs", []).append(dict(run_rec))
     tlog["runs"] = tlog["runs"][-20:]
     tlog["at"] = run_rec["at"]

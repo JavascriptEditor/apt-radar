@@ -177,10 +177,12 @@ class SaeolClient:
         # 1) 호스트
         first_rows: list[Row] = []
         url = ""
+        last_err = ""
         for u in site.list_urls():
             try:
                 rows, total, html = self._get(u)
             except Exception as e:  # noqa: BLE001
+                last_err = str(e)
                 log.info("%s 호스트 실패 %s: %s", site.id, u, e)
                 continue
             if rows or "서식민원" in html:
@@ -190,7 +192,8 @@ class SaeolClient:
                 first_rows, url = rows, u
                 break
         if not cfg["host"]:
-            cfg["error"] = "접속 가능한 새올 호스트를 찾지 못함"
+            # 사유를 같이 남긴다(접속 불가/시간 상한/HTTP 오류를 사이트 내정보에서 구분할 수 있게)
+            cfg["error"] = "접속 가능한 새올 호스트를 찾지 못함" + (f": {last_err[:160]}" if last_err else "")
             self.params[site.id] = cfg
             return cfg
         cfg["page_size"] = len(first_rows) or None

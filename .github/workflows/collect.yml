@@ -62,6 +62,7 @@ jobs:
       ALERTS_JSON: ${{ vars.ALERTS_JSON }}
       SITE_URL: ${{ vars.SITE_URL }}
       DATA_DIR: data
+      PYTHONUNBUFFERED: "1"      # 수집 로그를 실시간으로(버퍼링되면 몇 시간 뒤 한꺼번에 찍힌다)
     steps:
       - uses: actions/checkout@v4
 
@@ -148,6 +149,9 @@ jobs:
         continue-on-error: true
         env:
           DEEP: ${{ steps.mode.outputs.deep }}
+          # 서울 새올·land.seoul.go.kr 이 러너 IP 를 막는 날은 연결 타임아웃만 반복된다 → 호스트별로 빨리 포기하고
+          # 전체 실행은 이 시간 안에 끝낸다(남은 지역은 '시간 상한' 으로 건너뛰고 다음 실행에서 이어감)
+          TOHEO_MAX_SEC: ${{ vars.TOHEO_MAX_SEC || '1500' }}
         run: |
           if [ "$DEEP" = "1" ]; then python -m collector toheo --deep; else python -m collector toheo; fi
 
@@ -165,24 +169,36 @@ jobs:
         run: python -m collector export --out site --notify
 
       - name: data 브랜치 커밋
+        id: commit
         if: always()
+        continue-on-error: true    # 푸시 실패도 Pages 배포·최종 요약까지 진행한 뒤 job 실패로 표시
         run: |
           [ -d data/.git ] || [ -f data/.git ] || { echo "data worktree 없음"; exit 0; }
           cd data
           git add -A
-          if ! git diff --cached --quiet; then
-            git commit -qm "collect ${{ steps.mode.outputs.mode }} $(date -u +'%Y-%m-%dT%H:%MZ')"
-            # 집 PC(listings-home / scripts) 가 그 사이 푸시했을 수 있으니 받아서 얹는다(충돌 시 이쪽 우선). 최대 3회 재시도
-            for i in 1 2 3; do
+          if git diff --cached --quiet; then
+            echo "변경 없음"
+            exit 0
+          fi
+          git commit -qm "collect ${{ steps.mode.outputs.mode }} $(date -u +'%Y-%m-%dT%H:%MZ')"
+          for i in 1 2 3; do
+            if git ls-remote --exit-code --heads origin data >/dev/null 2>&1; then
+              # 집 PC(listings-home / scripts) 가 그 사이 푸시했을 수 있으니 받아서 얹는다(충돌 시 이쪽 우선)
               if git pull --rebase -X theirs origin data && git push origin HEAD:data; then
                 exit 0
               fi
               git rebase --abort 2>/dev/null || true
-              sleep $((i * 10))
-            done
-            echo "::error::data 브랜치 푸시 실패 (집 PC 푸시와 겹침?)"
-            exit 1
-          fi
+            else
+              # 첫 실행: 원격에 data 브랜치가 아직 없다 → 그대로 올린다(pull 할 대상이 없음)
+              echo "원격 data 브랜치가 없어 새로 만듭니다"
+              if git push -u origin HEAD:data; then
+                exit 0
+              fi
+            fi
+            sleep $((i * 10))
+          done
+          echo "::error::data 브랜치 푸시 실패 — 수집 결과가 저장되지 않았습니다 (집 PC 푸시와 겹침? 권한?)"
+          exit 1
 
       - uses: actions/configure-pages@v5
         if: steps.export.outcome == 'success'
@@ -200,9 +216,10 @@ jobs:
           R_LISTINGS: ${{ steps.listings.outcome }}
           R_TOHEO: ${{ steps.toheo.outcome }}
           R_EXPORT: ${{ steps.export.outcome }}
+          R_COMMIT: ${{ steps.commit.outcome }}
         run: |
           FAIL=0
-          for s in trades listings toheo export; do
+          for s in trades listings toheo export commit; do
             v="R_$(echo $s | tr a-z A-Z)"
             if [ "${!v}" = "failure" ]; then echo "::error::$s 스텝 실패 — 로그와 사이트 내정보 탭의 상태를 확인하세요"; FAIL=1; fi
           done

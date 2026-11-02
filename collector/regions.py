@@ -75,10 +75,16 @@ NEW_GU_DONGS = {
     "동탄구": ("41590", ["동탄동", "반송동", "석우동", "능동", "오산동", "청계동", "영천동", "신동", "목동", "산척동",
                        "장지동", "송동", "방교동", "금곡동", "중동", "신리", "장지리"]),
     "병점구": ("41590", ["병점동", "진안동", "기산동", "안녕동", "반정동", "황계동", "배양동", "송산동", "반월동"]),
-    "효행구": ("41590", ["봉담읍", "향남읍", "정남면", "양감면", "팔탄면", "상리", "하가등리", "행정리", "장짐리",
-                       "평리", "발안리", "구문천리", "동화리"]),
-    "만세구": ("41590", ["남양읍", "송산면", "서신면", "마도면", "우정읍", "장안면", "매송면", "비봉면", "새솔동",
-                       "남양리", "신남리", "조암리", "사강리"]),
+    # 2026-11 실거래 API 탐색 결과(41593): 봉담읍·매송면·비봉면·정남면·기안동 → 효행구
+    "효행구": ("41590", ["봉담읍", "매송면", "비봉면", "정남면", "기안동", "상리", "내리", "동화리", "수영리", "와우리",
+                       "유리", "천천리", "삼화리", "발산리"]),
+    # 2026-11 탐색 결과(41591): 남양읍·송산면·우정읍·장안면·팔탄면·향남읍·새솔동 → 만세구
+    "만세구": ("41590", ["남양읍", "송산면", "서신면", "마도면", "우정읍", "장안면", "팔탄면", "향남읍", "양감면", "새솔동",
+                       "남양리", "신남리", "무송리", "조암리", "사강리", "육일리", "사곡리", "가재리", "발안리",
+                       "상신리", "장짐리", "하길리", "행정리"]),
+    # 2026-07 인천 서구 분구 뒤 서구(잔여) 의 새 코드(28275). 검단구와 구분하기 위한 힌트
+    "서구": ("28260", ["가정동", "가좌동", "검암동", "경서동", "공촌동", "석남동", "신현동", "심곡동", "연희동",
+                     "청라동", "원창동"]),
     "영종구": ("28110", ["운남동", "운서동", "운북동", "중산동", "을왕동", "남북동", "덕교동", "무의동", "용유동"]),
     "제물포구": ("28110", ["신포동", "연안동", "신흥동", "답동", "도원동", "북성동", "송월동", "율목동", "인현동",
                          "항동", "관동", "중앙동", "해안동", "사동", "경동", "내동", "송학동", "선린동", "전동",
@@ -94,7 +100,7 @@ AREA_CHIPS = [
     ("노·도·강", ["11350", "11320", "11305"]),
     ("분당·판교", ["41135"]),
     ("과천·안양·광명", ["41290", "41171", "41173", "41210"]),
-    ("송도·청라", ["28185", "28260"]),
+    ("송도·청라", ["28185", "28260", "28275"]),   # 28275 = 2026-07 분구 뒤 인천 서구의 새 코드
 ]
 
 
@@ -162,15 +168,45 @@ def parse_filter(text: str | None, live: dict | None = None) -> list[str]:
     return out
 
 
+NEW_GU_FALLBACK_NAME = "신설구"
+
+
 def guess_new_gu(umd_names: set[str], sido: str, fallback_group: str | None) -> tuple[str, str]:
-    """훑어보다 찾은 코드의 법정동 집합으로 (이름, 묶음코드)를 추정."""
+    """훑어보다 찾은 코드의 법정동 집합으로 (이름, 묶음코드)를 추정.
+
+    실거래 API 의 umdNm 은 '봉담읍 내리' 처럼 읍·면과 리가 함께 오므로, 공백으로 나눈 토큰 단위로 힌트와 맞춘다.
+    """
+    tokens: set[str] = set()
+    for u in umd_names:
+        for tok in (u or "").split():
+            tokens.add(tok)
     best, best_hit = None, 0
     for gu, (grp, dongs) in NEW_GU_DONGS.items():
         if grp[:2] != sido:
             continue
-        hit = len(umd_names & set(dongs))
+        hit = len(tokens & set(dongs))
         if hit > best_hit:
             best, best_hit = (gu, grp), hit
     if best and best_hit >= 1:
         return best
-    return ("신설구", fallback_group or "")
+    return (NEW_GU_FALLBACK_NAME, fallback_group or "")
+
+
+def refresh_live_names(live: dict) -> int:
+    """regions_live.json 에 '신설구' 로 남은 코드를 힌트 표가 갱신된 뒤 다시 이름 붙인다. 바뀐 개수를 돌려준다."""
+    changed = 0
+    for code, info in (live or {}).items():
+        if not isinstance(info, dict) or info.get("name") not in (None, "", NEW_GU_FALLBACK_NAME):
+            continue
+        umds = set(info.get("umds") or [])
+        if not umds:
+            continue
+        sido = code[:2]
+        fallback = next((rg.get("fallback_group") for rg in SCAN_RANGES
+                         if rg["sido"] == sido and rg["start"] <= int(code) <= rg["end"]), None)
+        name, grp = guess_new_gu(umds, sido, fallback)
+        if name != NEW_GU_FALLBACK_NAME:
+            info["name"] = name
+            info["group"] = grp or info.get("group") or code
+            changed += 1
+    return changed

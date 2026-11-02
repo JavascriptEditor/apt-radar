@@ -892,7 +892,10 @@ function toheoStatusRows(t, counts) {
   const sites = Object.values(t.sites || {}); const ok = sites.filter(s => s.ok).length;
   const runs = t.runs || []; const last = runs[runs.length - 1];
   const p = t.permits || {};
-  return `<div class="row"><span class="k">토허 새올 수집</span><span class="v">${last ? esc(String(last.at || '').slice(0, 16).replace('T', ' ')) : '-'}<small>${sites.length ? `사이트 ${ok}/${sites.length} 정상` : ''}${last ? ` · ${last.deep ? '깊은' : '가벼운'} · 신규 ${fmtN(last.new)} · 완료관측 ${fmtN(last.completed_observed)} · 오류 ${fmtN(last.errors)}` : ''}</small></span></div>
+  // 접속 불가 호스트·계열(해외 IP 차단 추정)과 시간 상한으로 건너뛴 사이트 — "왜 0건인지" 가 보이게
+  const net = t.network || {}; const fams = Object.values(net.blockedFamilies || {}); const unreach = Object.keys(net.unreachable || {});
+  const netTxt = fams.length ? fams.map(esc).join(' · ') : (unreach.length ? `접속 불가 ${unreach.length}곳: ${esc(unreach.slice(0, 4).join(', '))}${unreach.length > 4 ? ' …' : ''}` : '');
+  return `<div class="row"><span class="k">토허 새올 수집</span><span class="v">${last ? esc(String(last.at || '').slice(0, 16).replace('T', ' ')) : '-'}<small>${sites.length ? `사이트 ${ok}/${sites.length} 정상` : ''}${last ? ` · ${last.deep ? '깊은' : '가벼운'} · 신규 ${fmtN(last.new)} · 완료관측 ${fmtN(last.completed_observed)} · 오류 ${fmtN(last.errors)}${last.skipped ? ` · <span class="ng">시간 상한으로 건너뜀 ${fmtN(last.skipped)}</span>` : ''}${last.sec != null ? ` · ${Math.round(last.sec / 60)}분` : ''}` : ''}${netTxt ? `<br><span class="ng">${netTxt}</span>` : ''}</small></span></div>
     <div class="row"><span class="k">서울 허가 내역</span><span class="v">${p.ok == null ? '미수집' : p.ok ? '<span class="ok">정상</span>' : '<span class="ng">실패</span>'}<small>${p.at ? esc(String(p.at).slice(0, 16).replace('T', ' ')) + ' · ' : ''}가져옴 ${fmtN(p.fetched)} · 추가 ${fmtN(p.added)} · 단지 매칭 ${fmtN(p.matched)}${counts.permits != null ? ` · 누적 ${fmtN(counts.permits)}` : ''}${counts.goneEvents != null ? ` · 매물 이벤트 ${fmtN(counts.goneEvents)}` : ''}${p.error ? ` · <span class="ng">${esc(p.error)}</span>` : ''}</small></span></div>`;
 }
 

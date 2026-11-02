@@ -9,6 +9,7 @@ model   : 적재가 끝난 묶음별 기준가 모델 적합
 from __future__ import annotations
 
 import datetime as dt
+import json
 import os
 import time
 from collections import defaultdict
@@ -22,6 +23,7 @@ from .store import Store, group_rows_by_year
 
 KST = dt.timezone(dt.timedelta(hours=9))
 BACKFILL_START = "200601"
+LIVE_EMPTY_STOP_MONTHS = 12   # 자동 탐색(신설 구) 코드의 과거 적재는 빈 달이 이만큼 이어지면 끝낸다
 REFRESH_MONTHS = 6
 MISS_LIMIT = 3            # 실거래: 재조회에서 연속 n회 사라지면 삭제
 LISTING_MISS_GONE = 2     # 매물: 성공 조회에서 연속 n회 없으면 gone
@@ -161,6 +163,9 @@ class Engine:
         self.log = log
         self.progress = store.read_json("progress.json", {})
         self.live = store.read_json("regions_live.json", {})
+        # 탐색 당시 이름을 못 붙인('신설구') 코드는 힌트 표가 갱신됐으면 다시 이름 붙인다(월 1회 탐색을 기다리지 않게)
+        if regions.refresh_live_names(self.live):
+            store.write_json("regions_live.json", self.live)
         self.codes = regions.parse_filter(region_filter or os.environ.get("REGION_FILTER"), self.live)
         self.complexes = store.read_complexes()
         self.fetch_log = store.read_json("fetch_log.json", {})
@@ -295,6 +300,7 @@ class Engine:
                     continue
                 batch: dict[str, list[dict]] = {}
                 cur_year = st["cursor"][:4]
+                empty_run = 0   # 연속 빈 달(신설 구 코드는 분구 전 이력이 없으므로 2006년까지 헛되이 내려가지 않게)
                 while not st["done"]:
                     if self.molit.remaining() <= reserve:
                         summary["stopped"] = "reserve"
@@ -309,10 +315,14 @@ class Engine:
                         cur_year = ym[:4]
                     batch[ym] = self._fetch_month(code, ym)
                     summary["backfilled"][code] = summary["backfilled"].get(code, 0) + 1
+                    empty_run = empty_run + 1 if not batch[ym] else 0
                     nxt = ym_add(ym, -1)
-                    if nxt < BACKFILL_START:
+                    if nxt < BACKFILL_START or (code in self.live and empty_run >= LIVE_EMPTY_STOP_MONTHS):
                         st["done"] = True
                         st["doneAt"] = today_str()
+                        if nxt >= BACKFILL_START:
+                            st["note"] = f"자동 탐색 코드: 빈 달 {empty_run}개월 연속 — 그 이전 이력은 묶음의 구 코드에 있음"
+                            self.log(f"[trades] {code} 적재 종료({st['note']})")
                     st["cursor"] = nxt
                 if batch:
                     self._merge_months(code, batch, refresh=False)
@@ -398,6 +408,7 @@ class Engine:
         todo = [(k, v) for k, v in by_dong.items() if any(need(c) for c in v)]
         todo.sort(key=lambda kv: min(c.get("matchedAt") or "" for c in kv[1]))
         done, matched, changed, status = 0, 0, 0, "ok"
+        empty_dongs, diag = 0, []   # 네이버가 단지 0건을 돌려준 동 수와 그 진단(응답 구조 확인용)
         try:
             for (sgg, umd_cd), cxs in todo[:max_dongs]:
                 cands = {sgg + umd_cd}
@@ -413,6 +424,16 @@ class Engine:
                     naver_cx = self.naver.complexes(cortar)
                     if naver_cx:
                         break
+                if not naver_cx:
+                    empty_dongs += 1
+                    if len(diag) < 3:
+                        # 왜 0건인지 남긴다(응답 구조·오류). 단지 목록은 공개 정보라 앞부분만 보관.
+                        sample = self.naver.last_data
+                        try:
+                            sample_txt = json.dumps(sample, ensure_ascii=False)[:1500] if sample is not None else None
+                        except (TypeError, ValueError):
+                            sample_txt = str(sample)[:1500]
+                        diag.append({"cortar": sorted(cands), "log": self.naver.log[-4:], "sample": sample_txt})
                 m = match_complexes(cxs, naver_cx)
                 for c in cxs:
                     c["matchedAt"] = today
@@ -435,9 +456,16 @@ class Engine:
         except CallBudgetExceeded as e:
             status = "partial"
             self.log(f"[match] 호출 상한: {e}")
+        if status == "ok" and done and empty_dongs == done:
+            # 호출은 됐는데 모든 동이 0건 — 응답 구조가 바뀌었거나(필드 이름) 조용한 차단. 사이트에 경고로 보이게
+            status = "empty: 네이버 응답에서 단지 목록을 찾지 못함 (config/naver.json 의 complexes_by_cortar·complex_fields 확인, data/naver_probe.json 참고)"
         self.fetch_log["match"] = {"at": now_kst().isoformat(timespec="seconds"), "dongs": done, "matched": matched,
                                    "changed": changed, "status": status, "calls": self.naver.calls,
-                                   "pending": max(0, len(todo) - done)}
+                                   "pending": max(0, len(todo) - done), "emptyDongs": empty_dongs,
+                                   "log": self.naver.log[-30:]}
+        if diag:
+            self.store.write_json("naver_probe.json", {"at": self.fetch_log["match"]["at"], "kind": "match",
+                                                       "status": status, "diag": diag})
         self._save()
         return self.fetch_log["match"]
 

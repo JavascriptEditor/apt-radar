@@ -124,6 +124,19 @@ if ("$result" -match '"status": "skipped') {
     Log "직전 수집이 최근이라 건너뛰었습니다 (LISTINGS_MIN_INTERVAL_MIN)."
 }
 
+# ---- 5b) (선택) 토허 수집도 집 PC 에서: HOME_TOHEO=1 (가벼운 수집) / deep (깊은 수집)
+# GitHub Actions(해외 IP)에서는 서울 자치구 새올·land.seoul.go.kr 연결이 막히는 날이 있어 국내 IP 인 집 PC 가 보완한다.
+if ($env:HOME_TOHEO -and $env:HOME_TOHEO -ne "0") {
+    $targs = @("-m", "collector", "toheo")
+    if ($env:HOME_TOHEO -eq "deep") { $targs += "--deep" }
+    Log "토허 수집 시작 (HOME_TOHEO=$($env:HOME_TOHEO))"
+    $tout = & $Venv @targs 2>&1
+    $trc = $LASTEXITCODE
+    $tlast = ($tout | Select-Object -Last 1)
+    Log ("토허 결과: " + ("$tlast".Substring(0, [Math]::Min(300, "$tlast".Length))))
+    if ($trc -ne 0) { Log "토허 수집이 비정상 종료했습니다(exit $trc). 매물 결과만 커밋합니다." }
+}
+
 # ---- 6) 커밋·푸시
 Push-Location data
 try {

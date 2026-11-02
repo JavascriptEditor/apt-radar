@@ -62,6 +62,10 @@
       (기본값: `POST /land/wsklis/getContractList.do`, `sggCd`·`beginDate`·`endDate`, 먼저 `GET /land/other/contractStatus.do` 로 세션 쿠키).
       응답 필드 이름이 바뀌었으면 같은 파일의 `fields` alias 에 새 이름을 추가하면 됩니다. 자동 탐지는 `python -m collector toheo --discover`
 - [ ] 새올 사이트가 `1페이지만` 으로 표시되면 `config/saeol_params.json` 에 페이지 파라미터 이름을 적기(`config/saeol_params.example.json` 참고)
+- [ ] 내정보 → 토허 상태에 **`접속 불가` / `seoul 계열 … 차단 추정`** 이 자주 뜨면 러너 IP 가 서울 사이트에 막히는 것 — 경기 새올·국토부 실거래는
+      영향 없고, 서울 허가·민원은 다음 실행(다른 러너 IP)에서 채워지거나 [집 PC 토허 수집](#집-pc-매물-수집-공식-1순위-경로)(`HOME_TOHEO=1`)으로 보완
+- [ ] 내정보 → 단지 매칭 상태가 `blocked: 연결 실패 …` 면 네이버가 Actions IP 를 막은 것(정상 범위, 집 PC 경로 사용). `empty: …` 면 응답 구조가 바뀐 것 —
+      `data` 브랜치의 `naver_probe.json` 에 남은 응답 샘플을 보고 `config/naver.json` 의 필드 이름을 고치세요
 - [ ] 토허구역 연장·해제 고시가 나오면 `config/designations.json` 의 `end`·`renewal_status` 갱신 (2026-11-01 기준 항목이 들어 있고, 10·15 대책 구역은 **2026-12-31 만료·연장 미확정**)
 - [ ] (선택) `config/alerts.json` + 텔레그램 Secrets
 
@@ -102,14 +106,20 @@ powershell -ExecutionPolicy Bypass -File scripts\home_listings.ps1
 주기 실행은 cron(macOS/Linux) 또는 작업 스케줄러(Windows)에 **하루 4회**(09:40·13:40·17:40·21:40 권장)로 거세요. 스크립트 머리말에 예시가 있습니다.
 환경변수 `REGION_FILTER`(지역 제한), `NAVER_MAX_CALLS`(실행당 호출, 기본 1500 ≈ 20분), `NAVER_DELAY_SEC`(간격 0.7초), `NO_PUSH=1`(확인용)을 쓸 수 있습니다.
 
+**토허도 집 PC 에서(`HOME_TOHEO=1`)** — GitHub Actions(해외 IP)에서는 서울 자치구 새올(`*.eminwon.seoul.kr`)과 `land.seoul.go.kr` 이
+**연결 자체가 막히는 날**이 있습니다(러너 IP 대역에 따라 다름; 내정보 탭 토허 상태에 `접속 불가` · `seoul 계열 … 차단 추정` 으로 표시).
+`HOME_TOHEO=1`(가벼운 수집) 또는 `HOME_TOHEO=deep` 을 주면 같은 스크립트가 매물 뒤에 `python -m collector toheo` 도 돌려
+서울 허가·민원을 국내 IP 로 채웁니다. 경기 시 새올은 Actions 에서도 대체로 열립니다.
+
 ### 방법 B. self-hosted runner
 
 > **Public 저장소에서는 쓰지 마세요.** self-hosted runner 는 저장소 단위로 등록되므로, 포크 PR 이 추가한 워크플로(`runs-on: self-hosted`)가
 > 집 PC(git 푸시 자격증명·`NAVER_LAND_TOKEN` 보유)에서 실행될 수 있습니다(GitHub 공식 문서도 공개 저장소에서의 self-hosted runner 를 권장하지 않음).
 > 이 저장소는 Pages 때문에 Public 이 기본이니 **방법 A 를 쓰세요.** 굳이 쓰려면 Private 저장소 + `Settings → Actions → Fork pull request workflows → Require approval for all outside collaborators` + 러너를 별도 사용자/컨테이너/VM 에 격리하세요.
 
-`Settings → Actions → Runners → New self-hosted runner` 로 집 PC 를 등록하면 `.github/workflows/listings-home.yml` 이 그 PC 에서
-하루 4회(10:00·14:00·18:00·22:00 KST) 매물을 수집해 `data` 브랜치에 푸시합니다. Actions 수집(`collect.yml` listings 모드, 09:40 …)과 같이 켜 두어도
+`Settings → Actions → Runners → New self-hosted runner` 로 집 PC 를 등록하고 **Variables 에 `HOME_RUNNER` = `1`** 을 넣으면
+`.github/workflows/listings-home.yml` 이 그 PC 에서 하루 4회(10:00·14:00·18:00·22:00 KST) 매물을 수집해 `data` 브랜치에 푸시합니다
+(변수가 없으면 예약 실행은 건너뜁니다 — 러너 없이 켜 두면 job 이 24시간 '대기 중' 으로 쌓이기 때문). Actions 수집(`collect.yml` listings 모드, 09:40 …)과 같이 켜 두어도
 됩니다: 양쪽 모두 **직전 2시간 안에 성공한 매물 수집이 있으면 건너뛰므로**(`LISTINGS_MIN_INTERVAL_MIN`, 기본 120) 같은 상태기계가 20분 간격으로 두 번 돌아
 '사라진 매물' 판정(연속 2회 미출현)이 앞당겨지는 일은 없고, Actions 가 `blocked` 일 때만 집 PC 가 실제로 수집합니다. 방법 A 의 스크립트도 같은 규칙을 따릅니다.
 
@@ -209,6 +219,8 @@ log(가격) = μ[단지·면적그룹] + S[시군구,월] + D[단지,월] + β�
 | `NAVER_MAX_CALLS` / `NAVER_DELAY_SEC` | 1500 / 0.7 | 매물 수집 실행당 호출 상한 / 요청 간격(초). 상한에 걸리면 `partial`(차단 아님) |
 | `LISTINGS_MIN_INTERVAL_MIN` | 0 (워크플로·집 PC 는 120) | 직전 성공 매물 수집이 이 분 안이면 건너뜀(`skipped`). Actions·집 PC 이중 수집 방지 |
 | `TRADES_MAX_SEC` | 0 (워크플로는 6000) | 실거래 적재 시간 상한(초). 다음 예약 실행이 대기열에서 취소되지 않게 100분 안에 끝냄 |
+| `TOHEO_MAX_SEC` | 0 (워크플로는 1500) | 토허 수집 시간 상한(초). 서울 사이트가 러너 IP 를 막는 날 연결 타임아웃으로 90분 넘게 끌지 않게. 남은 지역은 `skipped` 로 표시되고 다음 실행에서 이어감 |
+| `HOME_RUNNER` | (없음) | `1` 이면 `listings-home.yml`(self-hosted runner) 예약 실행을 켬. 러너 없이 켜 두면 job 이 24시간 '대기 중' 으로 쌓이므로 기본은 꺼짐 |
 | `MATCH_MAX_DONGS` | 400 | 단지 매칭 실행당 법정동 수 |
 | `TOHEO_DELAY_SEC` | 0.8 | 새올·서울시 요청 간격(초). 줄이지 마세요 |
 | `LIGHT_DAYS` / `DEEP_DAYS` | 2 / 45 | 가벼운/깊은 토허 수집이 거슬러 읽는 접수일 범위 |

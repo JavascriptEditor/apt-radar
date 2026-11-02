@@ -33,6 +33,9 @@ concurrency:
 
 jobs:
   listings:
+    # 러너를 등록하기 전에는 예약 실행을 건너뛴다(러너가 없으면 job 이 24시간 '대기 중' 으로 쌓인다).
+    # 러너 등록 뒤 Settings → Secrets and variables → Actions → Variables 에 HOME_RUNNER = 1 을 넣으면 예약이 살아난다.
+    if: vars.HOME_RUNNER == '1' || github.event_name == 'workflow_dispatch'
     runs-on: self-hosted
     timeout-minutes: 90
     env:

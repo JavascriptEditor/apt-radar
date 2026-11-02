@@ -95,6 +95,21 @@ case "$RESULT" in
   *'"status": "skipped'*) log "직전 수집이 최근이라 건너뛰었습니다 (LISTINGS_MIN_INTERVAL_MIN)." ;;
 esac
 
+# ---- 5b) (선택) 토허 수집도 집 PC 에서: HOME_TOHEO=1
+# GitHub Actions(해외 IP)에서는 서울 자치구 새올·land.seoul.go.kr 연결이 막히는 날이 있다. 국내 IP 인 집 PC 에서
+# 가벼운 토허 수집을 같이 돌리면(HOME_TOHEO=1, 깊은 수집은 HOME_TOHEO=deep) 그 날도 서울 허가·민원이 채워진다.
+if [ "${HOME_TOHEO:-0}" != "0" ]; then
+  TOHEO_ARGS=""
+  [ "${HOME_TOHEO}" = "deep" ] && TOHEO_ARGS="--deep"
+  log "토허 수집 시작 (HOME_TOHEO=${HOME_TOHEO})"
+  set +e
+  TOUT="$(.venv/bin/python -m collector toheo $TOHEO_ARGS)"
+  TRC=$?
+  set -e
+  log "토허 결과: $(printf '%s\n' "$TOUT" | tail -n 1 | cut -c1-300)"
+  [ "$TRC" -ne 0 ] && log "토허 수집이 비정상 종료했습니다(exit $TRC). 매물 결과만 커밋합니다."
+fi
+
 # ---- 6) 커밋·푸시
 cd data
 git add -A
