@@ -18,7 +18,7 @@
   "page_param": null,
   "size_param": null,
   "page_size": null,
-  "checked_at": "2026-11-03T07:17:41+09:00",
+  "checked_at": "2026-11-03T11:59:19+09:00",
   "error": "접속 가능한 새올 호스트를 찾지 못함: eminwon.junggu.go.kr 접속 불가: NameResolution"
  },
  "11170": {
@@ -29,8 +29,8 @@
   "page_param": null,
   "size_param": null,
   "page_size": null,
-  "checked_at": "2026-11-03T07:18:18+09:00",
-  "error": "접속 가능한 새올 호스트를 찾지 못함: eminwon.yongsan.go.kr 접속 불가(이번 실행에서 건너뜀): ConnectionError"
+  "checked_at": "2026-11-03T12:00:00+09:00",
+  "error": "접속 가능한 새올 호스트를 찾지 못함: eminwon.yongsan.go.kr 접속 불가(이번 실행에서 건너뜀): ConnectTimeout"
  },
  "11200": {
   "site": "11200",
@@ -40,8 +40,8 @@
   "page_param": null,
   "size_param": null,
   "page_size": null,
-  "checked_at": "2026-11-03T07:18:36+09:00",
-  "error": "접속 가능한 새올 호스트를 찾지 못함: eminwon.sd.go.kr 접속 불가(이번 실행에서 건너뜀): SSLError"
+  "checked_at": "2026-11-03T12:00:39+09:00",
+  "error": "접속 가능한 새올 호스트를 찾지 못함: eminwon.sd.go.kr 접속 불가(이번 실행에서 건너뜀): ConnectTimeout"
  },
  "11215": {
   "site": "11215",
@@ -51,7 +51,7 @@
   "page_param": null,
   "size_param": null,
   "page_size": null,
-  "checked_at": "2026-11-03T07:18:53+09:00",
+  "checked_at": "2026-11-03T12:00:57+09:00",
   "error": "접속 가능한 새올 호스트를 찾지 못함: eminwon.gwangjin.go.kr 접속 불가(이번 실행에서 건너뜀): NameResolution"
  },
  "11230": {
@@ -106,7 +106,7 @@
   "page_param": null,
   "size_param": null,
   "page_size": null,
-  "checked_at": "2026-11-03T07:19:02+09:00",
+  "checked_at": "2026-11-03T12:02:17+09:00",
   "error": "접속 가능한 새올 호스트를 찾지 못함: eminwon.dobong.go.kr 접속 불가(이번 실행에서 건너뜀): NameResolution"
  },
  "11350": {
@@ -117,7 +117,7 @@
   "page_param": null,
   "size_param": null,
   "page_size": null,
-  "checked_at": "2026-11-03T07:19:05+09:00",
+  "checked_at": "2026-11-03T12:02:19+09:00",
   "error": "접속 가능한 새올 호스트를 찾지 못함: seoul 계열 호스트 3개 연속 접속 불가 — 이번 실행에서 계열 전체를 건너뜀 (GitHub Actions 해외 IP 차단 추정; 집 PC 수집은 정상)"
  },
  "11380": {
@@ -161,7 +161,7 @@
   "page_param": null,
   "size_param": null,
   "page_size": null,
-  "checked_at": "2026-11-03T07:19:14+09:00",
+  "checked_at": "2026-11-03T12:03:22+09:00",
   "error": "접속 가능한 새올 호스트를 찾지 못함: eminwon.yangcheon.go.kr 접속 불가(이번 실행에서 건너뜀): ConnectTimeout"
  },
  "11500": {
@@ -217,8 +217,8 @@
   "page_param": null,
   "size_param": null,
   "page_size": null,
-  "checked_at": "2026-11-03T07:19:58+09:00",
-  "error": "접속 가능한 새올 호스트를 찾지 못함: eminwon.dongjak.go.kr 접속 불가(이번 실행에서 건너뜀): SSLError"
+  "checked_at": "2026-11-03T12:04:57+09:00",
+  "error": "접속 가능한 새올 호스트를 찾지 못함: eminwon.dongjak.go.kr 접속 불가(이번 실행에서 건너뜀): ConnectTimeout"
  },
  "11620": {
   "site": "11620",
@@ -250,7 +250,7 @@
   "page_param": null,
   "size_param": null,
   "page_size": null,
-  "checked_at": "2026-11-03T07:20:18+09:00",
+  "checked_at": "2026-11-03T12:05:59+09:00",
   "error": "접속 가능한 새올 호스트를 찾지 못함: eminwon.gangnam.go.kr 접속 불가(이번 실행에서 건너뜀): NameResolution"
  },
  "11710": {
@@ -261,7 +261,7 @@
   "page_param": null,
   "size_param": null,
   "page_size": null,
-  "checked_at": "2026-11-03T07:20:21+09:00",
+  "checked_at": "2026-11-03T12:06:01+09:00",
   "error": "접속 가능한 새올 호스트를 찾지 못함: eminwon.songpa.go.kr 접속 불가(이번 실행에서 건너뜀): NameResolution"
  },
  "11740": {
@@ -305,7 +305,7 @@
   "page_param": null,
   "size_param": null,
   "page_size": null,
-  "checked_at": "2026-11-03T07:20:28+09:00",
+  "checked_at": "2026-11-03T12:06:28+09:00",
   "error": "접속 가능한 새올 호스트를 찾지 못함: eminwon.seongnam.go.kr 접속 불가(이번 실행에서 건너뜀): SSLError"
  },
  "41110": {
@@ -352,7 +352,7 @@
   "page_param": null,
   "size_param": null,
   "page_size": null,
-  "checked_at": "2026-11-03T07:20:52+09:00",
+  "checked_at": "2026-11-03T12:06:45+09:00",
   "error": "접속 가능한 새올 호스트를 찾지 못함: eminwon.uw21.go.kr 접속 불가: NameResolution"
  },
  "41450": {
@@ -385,7 +385,7 @@
   "page_param": null,
   "size_param": null,
   "page_size": null,
-  "checked_at": "2026-11-03T07:21:32+09:00",
+  "checked_at": "2026-11-03T12:07:11+09:00",
   "error": "접속 가능한 새올 호스트를 찾지 못함: eminwon.guri.go.kr 접속 불가(이번 실행에서 건너뜀): SSLError"
  }
 }

@@ -146,8 +146,57 @@
    "blockedFamilies": {
     "seoul": "seoul 계열 호스트 3개 연속 접속 불가 — 이번 실행에서 계열 전체를 건너뜀 (GitHub Actions 해외 IP 차단 추정; 집 PC 수집은 정상)"
    }
+  },
+  {
+   "at": "2026-11-03T11:59:00+09:00",
+   "deep": false,
+   "sites": 35,
+   "new": 17,
+   "completed_observed": 0,
+   "errors": 31,
+   "http_calls": 77,
+   "skipped": 0,
+   "max_sec": 1500,
+   "sec": 504,
+   "unreachable": [
+    "eminwon.ddm.go.kr",
+    "eminwon.dobong.go.kr",
+    "eminwon.dongjak.go.kr",
+    "eminwon.ep.go.kr",
+    "eminwon.gangbuk.go.kr",
+    "eminwon.gangdong.go.kr",
+    "eminwon.gangnam.go.kr",
+    "eminwon.gangseo.seoul.kr",
+    "eminwon.geumcheon.go.kr",
+    "eminwon.guri.go.kr",
+    "eminwon.guro.go.kr",
+    "eminwon.gwanak.go.kr",
+    "eminwon.gwangjin.go.kr",
+    "eminwon.junggu.go.kr",
+    "eminwon.junggu.seoul.kr",
+    "eminwon.jungnang.go.kr",
+    "eminwon.mapo.go.kr",
+    "eminwon.nowon.go.kr",
+    "eminwon.sb.go.kr",
+    "eminwon.sd.go.kr",
+    "eminwon.sdm.go.kr",
+    "eminwon.seocho.go.kr",
+    "eminwon.seongnam.go.kr",
+    "eminwon.songpa.go.kr",
+    "eminwon.uw21.go.kr",
+    "eminwon.uw21.net",
+    "eminwon.yangcheon.go.kr",
+    "eminwon.ydp.go.kr",
+    "eminwon.yongsan.go.kr",
+    "jongno.eminwon.seoul.kr",
+    "junggu.eminwon.seoul.kr",
+    "yongsan.eminwon.seoul.kr"
+   ],
+   "blockedFamilies": {
+    "seoul": "seoul 계열 호스트 3개 연속 접속 불가 — 이번 실행에서 계열 전체를 건너뜀 (GitHub Actions 해외 IP 차단 추정; 집 PC 수집은 정상)"
+   }
   }
  ],
- "updatedAt": "2026-11-03T07:17:39+09:00",
+ "updatedAt": "2026-11-03T11:59:00+09:00",
  "lastDeep": "2026-11-03"
 }
