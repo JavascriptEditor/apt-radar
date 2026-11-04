@@ -1,8 +1,8 @@
 {
- "date": "2026-11-04",
- "callsToday": 8700,
+ "date": "2026-11-05",
+ "callsToday": 0,
  "scanAt": "202611",
- "updatedAt": "2026-11-04T19:52:39+09:00",
+ "updatedAt": "2026-11-05T01:34:04+09:00",
  "backfill": {
   "11110": {
    "done": true,
