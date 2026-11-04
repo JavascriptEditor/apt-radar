@@ -450,8 +450,46 @@
    "blockedFamilies": {
     "seoul": "seoul 계열 호스트 3개 연속 접속 불가 — 이번 실행에서 계열 전체를 건너뜀 (GitHub Actions 해외 IP 차단 추정; 집 PC 수집은 정상)"
    }
+  },
+  {
+   "at": "2026-11-05T05:18:49+09:00",
+   "deep": true,
+   "sites": 35,
+   "new": 0,
+   "completed_observed": 26,
+   "errors": 19,
+   "http_calls": 125,
+   "skipped": 0,
+   "max_sec": 1500,
+   "sec": 326,
+   "unreachable": [
+    "eminwon.ddm.go.kr",
+    "eminwon.dobong.go.kr",
+    "eminwon.dongjak.go.kr",
+    "eminwon.gangnam.go.kr",
+    "eminwon.guri.go.kr",
+    "eminwon.gwangjin.go.kr",
+    "eminwon.junggu.go.kr",
+    "eminwon.junggu.seoul.kr",
+    "eminwon.nowon.go.kr",
+    "eminwon.sd.go.kr",
+    "eminwon.seongnam.go.kr",
+    "eminwon.songpa.go.kr",
+    "eminwon.uw21.go.kr",
+    "eminwon.uw21.net",
+    "eminwon.yangcheon.go.kr",
+    "eminwon.ydp.go.kr",
+    "eminwon.yongin.go.kr",
+    "eminwon.yongsan.go.kr",
+    "junggu.eminwon.seoul.kr",
+    "sd.eminwon.seoul.kr",
+    "yongsan.eminwon.seoul.kr"
+   ],
+   "blockedFamilies": {
+    "seoul": "seoul 계열 호스트 3개 연속 접속 불가 — 이번 실행에서 계열 전체를 건너뜀 (GitHub Actions 해외 IP 차단 추정; 집 PC 수집은 정상)"
+   }
   }
  ],
- "updatedAt": "2026-11-04T19:49:03+09:00",
- "lastDeep": "2026-11-04"
+ "updatedAt": "2026-11-05T05:18:49+09:00",
+ "lastDeep": "2026-11-05"
 }
