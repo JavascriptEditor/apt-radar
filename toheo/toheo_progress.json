@@ -1853,8 +1853,51 @@
    "blockedFamilies": {
     "seoul": "seoul 계열 호스트 3개 연속 접속 불가 — 이번 실행에서 계열 전체를 건너뜀 (GitHub Actions 해외 IP 차단 추정; 집 PC 수집은 정상)"
    }
+  },
+  {
+   "at": "2026-11-12T05:10:40+09:00",
+   "deep": false,
+   "sites": 35,
+   "new": 0,
+   "completed_observed": 0,
+   "errors": 22,
+   "http_calls": 76,
+   "skipped": 0,
+   "max_sec": 1500,
+   "sec": 355,
+   "unreachable": [
+    "eminwon.anyang.go.kr",
+    "eminwon.dobong.go.kr",
+    "eminwon.dongjak.go.kr",
+    "eminwon.gangnam.go.kr",
+    "eminwon.gccity.go.kr",
+    "eminwon.gm.go.kr",
+    "eminwon.guri.go.kr",
+    "eminwon.gwangjin.go.kr",
+    "eminwon.hanam.go.kr",
+    "eminwon.hscity.go.kr",
+    "eminwon.junggu.go.kr",
+    "eminwon.junggu.seoul.kr",
+    "eminwon.nowon.go.kr",
+    "eminwon.sd.go.kr",
+    "eminwon.seongnam.go.kr",
+    "eminwon.songpa.go.kr",
+    "eminwon.suwon.go.kr",
+    "eminwon.uw21.go.kr",
+    "eminwon.uw21.net",
+    "eminwon.yangcheon.go.kr",
+    "eminwon.ydp.go.kr",
+    "eminwon.yongin.go.kr",
+    "eminwon.yongsan.go.kr",
+    "junggu.eminwon.seoul.kr",
+    "sd.eminwon.seoul.kr",
+    "yongsan.eminwon.seoul.kr"
+   ],
+   "blockedFamilies": {
+    "seoul": "seoul 계열 호스트 3개 연속 접속 불가 — 이번 실행에서 계열 전체를 건너뜀 (GitHub Actions 해외 IP 차단 추정; 집 PC 수집은 정상)"
+   }
   }
  ],
- "updatedAt": "2026-11-12T03:48:39+09:00",
+ "updatedAt": "2026-11-12T05:10:40+09:00",
  "lastDeep": "2026-11-12"
 }
