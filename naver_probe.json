@@ -1,27 +1,27 @@
 {
- "at": "2026-11-19T11:41:35+09:00",
+ "at": "2026-11-20T04:40:39+09:00",
  "kind": "match",
  "status": "blocked: 연결 실패 3회 연속 (ReadTimeout; GitHub Actions 해외 IP 차단 추정 — 집 PC 수집을 쓰세요)",
  "diag": [
   {
    "cortar": [
-    "1117013600"
+    "1117010800"
    ],
    "log": [
-    "error https://m.land.naver.com/complex/ajax/complexListByCortarNo?cortarNo=1117013600&rletTpCd=APT:ABYG:JGC: ReadTimeout: HTTPSConnectionPool(host='m.land.naver.com', port=443): Read timed out. (read timeout=20)",
-    "complexes_by_cortar 실패: error {'cortarNo': '1117013600'}"
+    "error https://m.land.naver.com/complex/ajax/complexListByCortarNo?cortarNo=1117010800&rletTpCd=APT:ABYG:JGC: ReadTimeout: HTTPSConnectionPool(host='m.land.naver.com', port=443): Read timed out. (read timeout=20)",
+    "complexes_by_cortar 실패: error {'cortarNo': '1117010800'}"
    ],
    "sample": null
   },
   {
    "cortar": [
-    "1117011500"
+    "1117013300"
    ],
    "log": [
-    "error https://m.land.naver.com/complex/ajax/complexListByCortarNo?cortarNo=1117013600&rletTpCd=APT:ABYG:JGC: ReadTimeout: HTTPSConnectionPool(host='m.land.naver.com', port=443): Read timed out. (read timeout=20)",
-    "complexes_by_cortar 실패: error {'cortarNo': '1117013600'}",
-    "error https://m.land.naver.com/complex/ajax/complexListByCortarNo?cortarNo=1117011500&rletTpCd=APT:ABYG:JGC: ReadTimeout: HTTPSConnectionPool(host='m.land.naver.com', port=443): Read timed out. (read timeout=20)",
-    "complexes_by_cortar 실패: error {'cortarNo': '1117011500'}"
+    "error https://m.land.naver.com/complex/ajax/complexListByCortarNo?cortarNo=1117010800&rletTpCd=APT:ABYG:JGC: ReadTimeout: HTTPSConnectionPool(host='m.land.naver.com', port=443): Read timed out. (read timeout=20)",
+    "complexes_by_cortar 실패: error {'cortarNo': '1117010800'}",
+    "error https://m.land.naver.com/complex/ajax/complexListByCortarNo?cortarNo=1117013300&rletTpCd=APT:ABYG:JGC: ReadTimeout: HTTPSConnectionPool(host='m.land.naver.com', port=443): Read timed out. (read timeout=20)",
+    "complexes_by_cortar 실패: error {'cortarNo': '1117013300'}"
    ],
    "sample": null
   }
