@@ -1,355 +1,355 @@
 {
  "trades": {
   "11110": {
-   "at": "2026-11-23T03:31:28+09:00",
+   "at": "2026-11-23T10:37:52+09:00",
    "n6m": 163
   },
   "11140": {
-   "at": "2026-11-23T03:31:30+09:00",
+   "at": "2026-11-23T10:37:54+09:00",
    "n6m": 277
   },
   "11170": {
-   "at": "2026-11-23T03:31:32+09:00",
+   "at": "2026-11-23T10:37:57+09:00",
    "n6m": 302
   },
   "11200": {
-   "at": "2026-11-23T03:31:34+09:00",
+   "at": "2026-11-23T10:37:59+09:00",
    "n6m": 458
   },
   "11215": {
-   "at": "2026-11-23T03:31:36+09:00",
+   "at": "2026-11-23T10:38:01+09:00",
    "n6m": 320
   },
   "11230": {
-   "at": "2026-11-23T03:31:39+09:00",
+   "at": "2026-11-23T10:38:05+09:00",
    "n6m": 1271
   },
   "11260": {
-   "at": "2026-11-23T03:31:42+09:00",
+   "at": "2026-11-23T10:38:08+09:00",
    "n6m": 1294
   },
   "11290": {
-   "at": "2026-11-23T03:31:46+09:00",
+   "at": "2026-11-23T10:38:12+09:00",
    "n6m": 1270
   },
   "11305": {
-   "at": "2026-11-23T03:31:48+09:00",
+   "at": "2026-11-23T10:38:15+09:00",
    "n6m": 542
   },
   "11320": {
-   "at": "2026-11-23T03:31:51+09:00",
+   "at": "2026-11-23T10:38:18+09:00",
    "n6m": 1330
   },
   "11350": {
-   "at": "2026-11-23T03:31:55+09:00",
+   "at": "2026-11-23T10:38:24+09:00",
    "n6m": 3017
   },
   "11380": {
-   "at": "2026-11-23T03:31:58+09:00",
+   "at": "2026-11-23T10:38:27+09:00",
    "n6m": 1274
   },
   "11410": {
-   "at": "2026-11-23T03:32:01+09:00",
+   "at": "2026-11-23T10:38:30+09:00",
    "n6m": 899
   },
   "11440": {
-   "at": "2026-11-23T03:32:04+09:00",
+   "at": "2026-11-23T10:38:33+09:00",
    "n6m": 663
   },
   "11470": {
-   "at": "2026-11-23T03:32:06+09:00",
+   "at": "2026-11-23T10:38:36+09:00",
    "n6m": 884
   },
   "11500": {
-   "at": "2026-11-23T03:32:09+09:00",
-   "n6m": 1697
+   "at": "2026-11-23T10:38:39+09:00",
+   "n6m": 1696
   },
   "11530": {
-   "at": "2026-11-23T03:32:13+09:00",
+   "at": "2026-11-23T10:38:43+09:00",
    "n6m": 1380
   },
   "11545": {
-   "at": "2026-11-23T03:32:15+09:00",
+   "at": "2026-11-23T10:38:46+09:00",
    "n6m": 568
   },
   "11560": {
-   "at": "2026-11-23T03:32:18+09:00",
-   "n6m": 1001
+   "at": "2026-11-23T10:38:49+09:00",
+   "n6m": 1004
   },
   "11590": {
-   "at": "2026-11-23T03:32:20+09:00",
+   "at": "2026-11-23T10:38:51+09:00",
    "n6m": 746
   },
   "11620": {
-   "at": "2026-11-23T03:32:23+09:00",
+   "at": "2026-11-23T10:38:54+09:00",
    "n6m": 847
   },
   "11650": {
-   "at": "2026-11-23T03:32:25+09:00",
+   "at": "2026-11-23T10:38:57+09:00",
    "n6m": 698
   },
   "11680": {
-   "at": "2026-11-23T03:32:28+09:00",
+   "at": "2026-11-23T10:39:00+09:00",
    "n6m": 828
   },
   "11710": {
-   "at": "2026-11-23T03:32:31+09:00",
-   "n6m": 1405
+   "at": "2026-11-23T10:39:04+09:00",
+   "n6m": 1406
   },
   "11740": {
-   "at": "2026-11-23T03:32:34+09:00",
-   "n6m": 1163
+   "at": "2026-11-23T10:39:07+09:00",
+   "n6m": 1162
   },
   "41111": {
-   "at": "2026-11-23T03:32:37+09:00",
-   "n6m": 1358
+   "at": "2026-11-23T10:39:11+09:00",
+   "n6m": 1372
   },
   "41113": {
-   "at": "2026-11-23T03:32:42+09:00",
+   "at": "2026-11-23T10:39:16+09:00",
    "n6m": 2904
   },
   "41115": {
-   "at": "2026-11-23T03:32:45+09:00",
+   "at": "2026-11-23T10:39:20+09:00",
    "n6m": 1235
   },
   "41117": {
-   "at": "2026-11-23T03:32:49+09:00",
+   "at": "2026-11-23T10:39:25+09:00",
    "n6m": 2927
   },
   "41131": {
-   "at": "2026-11-23T03:32:52+09:00",
+   "at": "2026-11-23T10:39:28+09:00",
    "n6m": 455
   },
   "41133": {
-   "at": "2026-11-23T03:32:54+09:00",
+   "at": "2026-11-23T10:39:30+09:00",
    "n6m": 659
   },
   "41135": {
-   "at": "2026-11-23T03:32:58+09:00",
+   "at": "2026-11-23T10:39:34+09:00",
    "n6m": 1612
   },
   "41150": {
-   "at": "2026-11-23T03:33:02+09:00",
+   "at": "2026-11-23T10:39:40+09:00",
    "n6m": 2684
   },
   "41171": {
-   "at": "2026-11-23T03:33:05+09:00",
+   "at": "2026-11-23T10:39:43+09:00",
    "n6m": 1370
   },
   "41173": {
-   "at": "2026-11-23T03:33:09+09:00",
+   "at": "2026-11-23T10:39:48+09:00",
    "n6m": 2186
   },
   "41190": {
-   "at": "2026-11-23T03:33:11+09:00",
+   "at": "2026-11-23T10:39:50+09:00",
    "n6m": 0
   },
   "41192": {
-   "at": "2026-11-23T03:28:43+09:00",
+   "at": "2026-11-23T10:34:45+09:00",
    "n6m": 2417
   },
   "41194": {
-   "at": "2026-11-23T03:28:46+09:00",
+   "at": "2026-11-23T10:34:49+09:00",
    "n6m": 1206
   },
   "41196": {
-   "at": "2026-11-23T03:28:49+09:00",
+   "at": "2026-11-23T10:34:51+09:00",
    "n6m": 287
   },
   "41210": {
-   "at": "2026-11-23T03:28:52+09:00",
+   "at": "2026-11-23T10:34:54+09:00",
    "n6m": 1092
   },
   "41220": {
-   "at": "2026-11-23T03:28:57+09:00",
+   "at": "2026-11-23T10:35:01+09:00",
    "n6m": 3746
   },
   "41250": {
-   "at": "2026-11-23T03:28:59+09:00",
+   "at": "2026-11-23T10:35:03+09:00",
    "n6m": 453
   },
   "41271": {
-   "at": "2026-11-23T03:29:02+09:00",
+   "at": "2026-11-23T10:35:06+09:00",
    "n6m": 744
   },
   "41273": {
-   "at": "2026-11-23T03:29:05+09:00",
+   "at": "2026-11-23T10:35:09+09:00",
    "n6m": 1240
   },
   "41281": {
-   "at": "2026-11-23T03:29:09+09:00",
+   "at": "2026-11-23T10:35:14+09:00",
    "n6m": 2629
   },
   "41285": {
-   "at": "2026-11-23T03:29:12+09:00",
-   "n6m": 1025
+   "at": "2026-11-23T10:35:18+09:00",
+   "n6m": 1032
   },
   "41287": {
-   "at": "2026-11-23T03:29:15+09:00",
+   "at": "2026-11-23T10:35:21+09:00",
    "n6m": 1519
   },
   "41290": {
-   "at": "2026-11-23T03:29:18+09:00",
+   "at": "2026-11-23T10:35:24+09:00",
    "n6m": 105
   },
   "41310": {
-   "at": "2026-11-23T03:29:20+09:00",
+   "at": "2026-11-23T10:35:27+09:00",
    "n6m": 882
   },
   "41360": {
-   "at": "2026-11-23T03:29:27+09:00",
-   "n6m": 4715
+   "at": "2026-11-23T10:35:35+09:00",
+   "n6m": 4713
   },
   "41370": {
-   "at": "2026-11-23T03:29:31+09:00",
+   "at": "2026-11-23T10:35:39+09:00",
    "n6m": 2039
   },
   "41390": {
-   "at": "2026-11-23T03:29:36+09:00",
+   "at": "2026-11-23T10:35:45+09:00",
    "n6m": 2842
   },
   "41410": {
-   "at": "2026-11-23T03:29:40+09:00",
+   "at": "2026-11-23T10:35:50+09:00",
    "n6m": 2527
   },
   "41430": {
-   "at": "2026-11-23T03:29:42+09:00",
+   "at": "2026-11-23T10:35:53+09:00",
    "n6m": 859
   },
   "41450": {
-   "at": "2026-11-23T03:29:46+09:00",
+   "at": "2026-11-23T10:35:56+09:00",
    "n6m": 1387
   },
   "41461": {
-   "at": "2026-11-23T03:29:49+09:00",
+   "at": "2026-11-23T10:36:00+09:00",
    "n6m": 1352
   },
   "41463": {
-   "at": "2026-11-23T03:29:53+09:00",
+   "at": "2026-11-23T10:36:05+09:00",
    "n6m": 2579
   },
   "41465": {
-   "at": "2026-11-23T03:29:58+09:00",
-   "n6m": 2550
+   "at": "2026-11-23T10:36:10+09:00",
+   "n6m": 2574
   },
   "41480": {
-   "at": "2026-11-23T03:30:02+09:00",
-   "n6m": 2190
+   "at": "2026-11-23T10:36:15+09:00",
+   "n6m": 2189
   },
   "41500": {
-   "at": "2026-11-23T03:30:05+09:00",
+   "at": "2026-11-23T10:36:18+09:00",
    "n6m": 931
   },
   "41550": {
-   "at": "2026-11-23T03:30:08+09:00",
+   "at": "2026-11-23T10:36:21+09:00",
    "n6m": 966
   },
   "41570": {
-   "at": "2026-11-23T03:30:12+09:00",
+   "at": "2026-11-23T10:36:26+09:00",
    "n6m": 2106
   },
   "41590": {
-   "at": "2026-11-23T03:30:14+09:00",
+   "at": "2026-11-23T10:36:28+09:00",
    "n6m": 0
   },
   "41610": {
-   "at": "2026-11-23T03:30:17+09:00",
+   "at": "2026-11-23T10:36:32+09:00",
    "n6m": 1778
   },
   "41630": {
-   "at": "2026-11-23T03:30:20+09:00",
+   "at": "2026-11-23T10:36:36+09:00",
    "n6m": 1465
   },
   "41650": {
-   "at": "2026-11-23T03:30:22+09:00",
+   "at": "2026-11-23T10:36:38+09:00",
    "n6m": 334
   },
   "41670": {
-   "at": "2026-11-23T03:30:25+09:00",
+   "at": "2026-11-23T10:36:41+09:00",
    "n6m": 327
   },
   "41800": {
-   "at": "2026-11-23T03:30:27+09:00",
+   "at": "2026-11-23T10:36:43+09:00",
    "n6m": 73
   },
   "41820": {
-   "at": "2026-11-23T03:30:29+09:00",
+   "at": "2026-11-23T10:36:45+09:00",
    "n6m": 114
   },
   "41830": {
-   "at": "2026-11-23T03:30:31+09:00",
+   "at": "2026-11-23T10:36:48+09:00",
    "n6m": 253
   },
   "28110": {
-   "at": "2026-11-23T03:30:33+09:00",
+   "at": "2026-11-23T10:36:50+09:00",
    "n6m": 0
   },
   "28140": {
-   "at": "2026-11-23T03:30:35+09:00",
+   "at": "2026-11-23T10:36:53+09:00",
    "n6m": 0
   },
   "28177": {
-   "at": "2026-11-23T03:30:38+09:00",
+   "at": "2026-11-23T10:36:56+09:00",
    "n6m": 1314
   },
   "28185": {
-   "at": "2026-11-23T03:30:43+09:00",
+   "at": "2026-11-23T10:37:01+09:00",
    "n6m": 2508
   },
   "28200": {
-   "at": "2026-11-23T03:30:46+09:00",
+   "at": "2026-11-23T10:37:05+09:00",
    "n6m": 1804
   },
   "28237": {
-   "at": "2026-11-23T03:30:51+09:00",
-   "n6m": 2402
+   "at": "2026-11-23T10:37:10+09:00",
+   "n6m": 2401
   },
   "28245": {
-   "at": "2026-11-23T03:30:53+09:00",
+   "at": "2026-11-23T10:37:13+09:00",
    "n6m": 1191
   },
   "28260": {
-   "at": "2026-11-23T03:30:56+09:00",
+   "at": "2026-11-23T10:37:16+09:00",
    "n6m": 0
   },
   "28710": {
-   "at": "2026-11-23T03:30:58+09:00",
+   "at": "2026-11-23T10:37:18+09:00",
    "n6m": 61
   },
   "28720": {
-   "at": "2026-11-23T03:31:00+09:00",
+   "at": "2026-11-23T10:37:20+09:00",
    "n6m": 0
   },
   "41591": {
-   "at": "2026-11-23T03:31:02+09:00",
+   "at": "2026-11-23T10:37:23+09:00",
    "n6m": 574
   },
   "41593": {
-   "at": "2026-11-23T03:31:05+09:00",
+   "at": "2026-11-23T10:37:26+09:00",
    "n6m": 997
   },
   "41595": {
-   "at": "2026-11-23T03:31:09+09:00",
+   "at": "2026-11-23T10:37:30+09:00",
    "n6m": 2061
   },
   "41597": {
-   "at": "2026-11-23T03:31:14+09:00",
+   "at": "2026-11-23T10:37:37+09:00",
    "n6m": 3215
   },
   "28125": {
-   "at": "2026-11-23T03:31:17+09:00",
+   "at": "2026-11-23T10:37:39+09:00",
    "n6m": 354
   },
   "28155": {
-   "at": "2026-11-23T03:31:19+09:00",
+   "at": "2026-11-23T10:37:42+09:00",
    "n6m": 569
   },
   "28275": {
-   "at": "2026-11-23T03:31:22+09:00",
+   "at": "2026-11-23T10:37:45+09:00",
    "n6m": 1412
   },
   "28290": {
-   "at": "2026-11-23T03:31:25+09:00",
+   "at": "2026-11-23T10:37:49+09:00",
    "n6m": 1588
   }
  },
@@ -364,7 +364,7 @@
  "toheo": {
   "sites": {
    "11110": {
-    "at": "2026-11-23T05:19:13+09:00",
+    "at": "2026-11-23T10:43:10+09:00",
     "ok": true,
     "host": "jongno.eminwon.seoul.kr",
     "pages": 1,
@@ -381,7 +381,7 @@
     "closed_out": 0
    },
    "11140": {
-    "at": "2026-11-23T05:19:13+09:00",
+    "at": "2026-11-23T10:43:10+09:00",
     "ok": false,
     "host": null,
     "pages": 0,
@@ -398,7 +398,7 @@
     "closed_out": 0
    },
    "11170": {
-    "at": "2026-11-23T05:19:13+09:00",
+    "at": "2026-11-23T10:43:10+09:00",
     "ok": false,
     "host": null,
     "pages": 0,
@@ -415,7 +415,7 @@
     "closed_out": 0
    },
    "11200": {
-    "at": "2026-11-23T05:19:13+09:00",
+    "at": "2026-11-23T10:43:10+09:00",
     "ok": false,
     "host": null,
     "pages": 0,
@@ -432,7 +432,7 @@
     "closed_out": 0
    },
    "11215": {
-    "at": "2026-11-23T05:19:13+09:00",
+    "at": "2026-11-23T10:43:10+09:00",
     "ok": false,
     "host": null,
     "pages": 0,
@@ -449,14 +449,14 @@
     "closed_out": 0
    },
    "11230": {
-    "at": "2026-11-23T05:19:13+09:00",
-    "ok": false,
+    "at": "2026-11-23T10:43:10+09:00",
+    "ok": true,
     "host": "eminwon.ddm.go.kr",
-    "pages": 0,
-    "rows": 0,
-    "toheo_rows": 0,
-    "reached_cutoff": false,
-    "error": "1페이지 실패: eminwon.ddm.go.kr 접속 불가: ConnectTimeout",
+    "pages": 1,
+    "rows": 100,
+    "toheo_rows": 16,
+    "reached_cutoff": true,
+    "error": null,
     "warning": null,
     "deep": false,
     "new": 0,
@@ -466,14 +466,14 @@
     "closed_out": 0
    },
    "11260": {
-    "at": "2026-11-23T05:19:13+09:00",
-    "ok": false,
+    "at": "2026-11-23T10:43:10+09:00",
+    "ok": true,
     "host": "eminwon.jungnang.go.kr",
-    "pages": 0,
-    "rows": 0,
-    "toheo_rows": 0,
-    "reached_cutoff": false,
-    "error": "1페이지 실패: HTTP 400 https://eminwon.jungnang.go.kr/emwp/gov/mogaha/ntis/web/caf/mwwd/action/CafMwWdOpenAction.do?method=selectListMwOpn&menu_id=CAFOPNWebMwOpenL&jndinm=CafMwWdOpenEJB&methodnm=selectListMwOpn&context=NTIS",
+    "pages": 1,
+    "rows": 100,
+    "toheo_rows": 13,
+    "reached_cutoff": true,
+    "error": null,
     "warning": null,
     "deep": false,
     "new": 0,
@@ -483,41 +483,41 @@
     "closed_out": 0
    },
    "11290": {
-    "at": "2026-11-23T05:19:13+09:00",
+    "at": "2026-11-23T10:43:10+09:00",
     "ok": true,
     "host": "eminwon.sb.go.kr",
     "pages": 1,
     "rows": 100,
-    "toheo_rows": 22,
+    "toheo_rows": 29,
     "reached_cutoff": true,
     "error": null,
     "warning": null,
     "deep": false,
-    "new": 0,
+    "new": 8,
     "updated": 0,
     "completed_observed": 0,
     "dropped": 0,
     "closed_out": 0
    },
    "11305": {
-    "at": "2026-11-23T05:19:13+09:00",
+    "at": "2026-11-23T10:43:10+09:00",
     "ok": true,
     "host": "eminwon.gangbuk.go.kr",
     "pages": 1,
     "rows": 100,
-    "toheo_rows": 11,
+    "toheo_rows": 12,
     "reached_cutoff": true,
     "error": null,
     "warning": null,
     "deep": false,
-    "new": 0,
+    "new": 1,
     "updated": 0,
     "completed_observed": 0,
     "dropped": 0,
     "closed_out": 0
    },
    "11320": {
-    "at": "2026-11-23T05:19:13+09:00",
+    "at": "2026-11-23T10:43:10+09:00",
     "ok": false,
     "host": null,
     "pages": 0,
@@ -534,7 +534,7 @@
     "closed_out": 0
    },
    "11350": {
-    "at": "2026-11-23T05:19:13+09:00",
+    "at": "2026-11-23T10:43:10+09:00",
     "ok": false,
     "host": null,
     "pages": 0,
@@ -551,14 +551,14 @@
     "closed_out": 0
    },
    "11380": {
-    "at": "2026-11-23T05:19:13+09:00",
-    "ok": true,
+    "at": "2026-11-23T10:43:10+09:00",
+    "ok": false,
     "host": "eminwon.ep.go.kr",
-    "pages": 1,
-    "rows": 100,
-    "toheo_rows": 16,
-    "reached_cutoff": true,
-    "error": null,
+    "pages": 0,
+    "rows": 0,
+    "toheo_rows": 0,
+    "reached_cutoff": false,
+    "error": "1페이지 실패: GET https://eminwon.ep.go.kr/emwp/gov/mogaha/ntis/web/caf/mwwd/action/CafMwWdOpenAction.do?method=selectListMwOpn&menu_id=CAFOPNWebMwOpenL&jndinm=CafMwWdOpenEJB&methodnm=selectListMwOpn&context=NTIS&pageIndex=1&pageSize=100 실패: HTTPSConnectionPool(host='eminwon.ep.go.kr', port=443): Read timed out. (read timeout=25.0)",
     "warning": null,
     "deep": false,
     "new": 0,
@@ -568,77 +568,9 @@
     "closed_out": 0
    },
    "11410": {
-    "at": "2026-11-23T05:19:13+09:00",
+    "at": "2026-11-23T10:43:10+09:00",
     "ok": true,
     "host": "eminwon.sdm.go.kr",
-    "pages": 1,
-    "rows": 100,
-    "toheo_rows": 24,
-    "reached_cutoff": true,
-    "error": null,
-    "warning": null,
-    "deep": false,
-    "new": 0,
-    "updated": 0,
-    "completed_observed": 0,
-    "dropped": 0,
-    "closed_out": 0
-   },
-   "11440": {
-    "at": "2026-11-23T05:19:13+09:00",
-    "ok": true,
-    "host": "eminwon.mapo.go.kr",
-    "pages": 1,
-    "rows": 100,
-    "toheo_rows": 8,
-    "reached_cutoff": true,
-    "error": null,
-    "warning": null,
-    "deep": false,
-    "new": 0,
-    "updated": 0,
-    "completed_observed": 0,
-    "dropped": 0,
-    "closed_out": 0
-   },
-   "11470": {
-    "at": "2026-11-23T05:19:13+09:00",
-    "ok": false,
-    "host": "eminwon.yangcheon.go.kr",
-    "pages": 0,
-    "rows": 0,
-    "toheo_rows": 0,
-    "reached_cutoff": false,
-    "error": "1페이지 실패: eminwon.yangcheon.go.kr 접속 불가: ConnectTimeout",
-    "warning": null,
-    "deep": false,
-    "new": 0,
-    "updated": 0,
-    "completed_observed": 0,
-    "dropped": 0,
-    "closed_out": 0
-   },
-   "11500": {
-    "at": "2026-11-23T05:19:13+09:00",
-    "ok": true,
-    "host": "eminwon.gangseo.seoul.kr",
-    "pages": 1,
-    "rows": 100,
-    "toheo_rows": 11,
-    "reached_cutoff": true,
-    "error": null,
-    "warning": null,
-    "deep": false,
-    "new": 0,
-    "updated": 0,
-    "completed_observed": 0,
-    "dropped": 0,
-    "closed_out": 0
-   },
-   "11530": {
-    "at": "2026-11-23T05:19:13+09:00",
-    "ok": true,
-    "host": "eminwon.guro.go.kr",
     "pages": 1,
     "rows": 100,
     "toheo_rows": 22,
@@ -652,13 +584,81 @@
     "dropped": 0,
     "closed_out": 0
    },
+   "11440": {
+    "at": "2026-11-23T10:43:10+09:00",
+    "ok": true,
+    "host": "eminwon.mapo.go.kr",
+    "pages": 1,
+    "rows": 100,
+    "toheo_rows": 7,
+    "reached_cutoff": true,
+    "error": null,
+    "warning": null,
+    "deep": false,
+    "new": 1,
+    "updated": 0,
+    "completed_observed": 0,
+    "dropped": 0,
+    "closed_out": 0
+   },
+   "11470": {
+    "at": "2026-11-23T10:43:10+09:00",
+    "ok": true,
+    "host": "eminwon.yangcheon.go.kr",
+    "pages": 1,
+    "rows": 100,
+    "toheo_rows": 16,
+    "reached_cutoff": true,
+    "error": null,
+    "warning": null,
+    "deep": false,
+    "new": 1,
+    "updated": 0,
+    "completed_observed": 0,
+    "dropped": 0,
+    "closed_out": 0
+   },
+   "11500": {
+    "at": "2026-11-23T10:43:10+09:00",
+    "ok": true,
+    "host": "eminwon.gangseo.seoul.kr",
+    "pages": 1,
+    "rows": 100,
+    "toheo_rows": 11,
+    "reached_cutoff": true,
+    "error": null,
+    "warning": null,
+    "deep": false,
+    "new": 1,
+    "updated": 0,
+    "completed_observed": 0,
+    "dropped": 0,
+    "closed_out": 0
+   },
+   "11530": {
+    "at": "2026-11-23T10:43:10+09:00",
+    "ok": true,
+    "host": "eminwon.guro.go.kr",
+    "pages": 1,
+    "rows": 100,
+    "toheo_rows": 21,
+    "reached_cutoff": true,
+    "error": null,
+    "warning": null,
+    "deep": false,
+    "new": 1,
+    "updated": 0,
+    "completed_observed": 0,
+    "dropped": 0,
+    "closed_out": 0
+   },
    "11545": {
-    "at": "2026-11-23T05:19:13+09:00",
+    "at": "2026-11-23T10:43:10+09:00",
     "ok": true,
     "host": "eminwon.geumcheon.go.kr",
     "pages": 1,
     "rows": 100,
-    "toheo_rows": 15,
+    "toheo_rows": 13,
     "reached_cutoff": true,
     "error": null,
     "warning": null,
@@ -670,24 +670,24 @@
     "closed_out": 0
    },
    "11560": {
-    "at": "2026-11-23T05:19:13+09:00",
-    "ok": false,
+    "at": "2026-11-23T10:43:10+09:00",
+    "ok": true,
     "host": "eminwon.ydp.go.kr",
-    "pages": 0,
-    "rows": 0,
-    "toheo_rows": 0,
-    "reached_cutoff": false,
-    "error": "1페이지 실패: eminwon.ydp.go.kr 접속 불가: ConnectTimeout",
+    "pages": 1,
+    "rows": 100,
+    "toheo_rows": 14,
+    "reached_cutoff": true,
+    "error": null,
     "warning": null,
     "deep": false,
-    "new": 0,
+    "new": 1,
     "updated": 0,
     "completed_observed": 0,
     "dropped": 0,
     "closed_out": 0
    },
    "11590": {
-    "at": "2026-11-23T05:19:13+09:00",
+    "at": "2026-11-23T10:43:10+09:00",
     "ok": false,
     "host": null,
     "pages": 0,
@@ -704,7 +704,7 @@
     "closed_out": 0
    },
    "11620": {
-    "at": "2026-11-23T05:19:13+09:00",
+    "at": "2026-11-23T10:43:10+09:00",
     "ok": true,
     "host": "eminwon.gwanak.go.kr",
     "pages": 1,
@@ -721,7 +721,7 @@
     "closed_out": 0
    },
    "11650": {
-    "at": "2026-11-23T05:19:13+09:00",
+    "at": "2026-11-23T10:43:10+09:00",
     "ok": true,
     "host": "eminwon.seocho.go.kr",
     "pages": 1,
@@ -731,14 +731,14 @@
     "error": null,
     "warning": null,
     "deep": false,
-    "new": 0,
+    "new": 1,
     "updated": 0,
     "completed_observed": 0,
     "dropped": 0,
     "closed_out": 0
    },
    "11680": {
-    "at": "2026-11-23T05:19:13+09:00",
+    "at": "2026-11-23T10:43:10+09:00",
     "ok": false,
     "host": null,
     "pages": 0,
@@ -755,7 +755,7 @@
     "closed_out": 0
    },
    "11710": {
-    "at": "2026-11-23T05:19:13+09:00",
+    "at": "2026-11-23T10:43:10+09:00",
     "ok": false,
     "host": null,
     "pages": 0,
@@ -772,7 +772,7 @@
     "closed_out": 0
    },
    "11740": {
-    "at": "2026-11-23T05:19:13+09:00",
+    "at": "2026-11-23T10:43:10+09:00",
     "ok": false,
     "host": "eminwon.gangdong.go.kr",
     "pages": 0,
@@ -789,11 +789,11 @@
     "closed_out": 0
    },
    "41290": {
-    "at": "2026-11-23T05:19:13+09:00",
+    "at": "2026-11-23T10:43:10+09:00",
     "ok": true,
     "host": "eminwon.gccity.go.kr",
     "pages": 1,
-    "rows": 71,
+    "rows": 72,
     "toheo_rows": 2,
     "reached_cutoff": true,
     "error": null,
@@ -806,24 +806,24 @@
     "closed_out": 0
    },
    "41210": {
-    "at": "2026-11-23T05:19:13+09:00",
+    "at": "2026-11-23T10:43:10+09:00",
     "ok": true,
     "host": "eminwon.gm.go.kr",
     "pages": 1,
     "rows": 100,
-    "toheo_rows": 6,
+    "toheo_rows": 10,
     "reached_cutoff": true,
     "error": null,
     "warning": null,
     "deep": false,
-    "new": 0,
+    "new": 4,
     "updated": 0,
     "completed_observed": 0,
     "dropped": 0,
     "closed_out": 0
    },
    "41130": {
-    "at": "2026-11-23T05:19:13+09:00",
+    "at": "2026-11-23T10:43:10+09:00",
     "ok": false,
     "host": null,
     "pages": 0,
@@ -840,24 +840,24 @@
     "closed_out": 0
    },
    "41110": {
-    "at": "2026-11-23T05:19:13+09:00",
+    "at": "2026-11-23T10:43:10+09:00",
     "ok": true,
     "host": "eminwon.suwon.go.kr",
     "pages": 1,
     "rows": 100,
-    "toheo_rows": 11,
+    "toheo_rows": 15,
     "reached_cutoff": true,
     "error": null,
     "warning": null,
     "deep": false,
-    "new": 0,
+    "new": 8,
     "updated": 0,
     "completed_observed": 0,
     "dropped": 0,
     "closed_out": 0
    },
    "41170": {
-    "at": "2026-11-23T05:19:13+09:00",
+    "at": "2026-11-23T10:43:10+09:00",
     "ok": true,
     "host": "eminwon.anyang.go.kr",
     "pages": 1,
@@ -874,24 +874,24 @@
     "closed_out": 0
    },
    "41460": {
-    "at": "2026-11-23T05:19:13+09:00",
-    "ok": false,
+    "at": "2026-11-23T10:43:10+09:00",
+    "ok": true,
     "host": "eminwon.yongin.go.kr",
-    "pages": 0,
-    "rows": 0,
-    "toheo_rows": 0,
-    "reached_cutoff": false,
-    "error": "1페이지 실패: HTTP 400 https://eminwon.yongin.go.kr/emwp/gov/mogaha/ntis/web/caf/mwwd/action/CafMwWdOpenAction.do?method=selectListMwOpn&menu_id=CAFOPNWebMwOpenL&jndinm=CafMwWdOpenEJB&methodnm=selectListMwOpn&context=NTIS",
+    "pages": 1,
+    "rows": 100,
+    "toheo_rows": 23,
+    "reached_cutoff": true,
+    "error": null,
     "warning": null,
     "deep": false,
-    "new": 0,
+    "new": 7,
     "updated": 0,
     "completed_observed": 0,
     "dropped": 0,
     "closed_out": 0
    },
    "41430": {
-    "at": "2026-11-23T05:19:13+09:00",
+    "at": "2026-11-23T10:43:10+09:00",
     "ok": false,
     "host": null,
     "pages": 0,
@@ -908,14 +908,14 @@
     "closed_out": 0
    },
    "41450": {
-    "at": "2026-11-23T05:19:13+09:00",
-    "ok": true,
+    "at": "2026-11-23T10:43:10+09:00",
+    "ok": false,
     "host": "eminwon.hanam.go.kr",
-    "pages": 1,
-    "rows": 100,
-    "toheo_rows": 17,
-    "reached_cutoff": true,
-    "error": null,
+    "pages": 0,
+    "rows": 0,
+    "toheo_rows": 0,
+    "reached_cutoff": false,
+    "error": "1페이지 실패: HTTP 400 https://eminwon.hanam.go.kr/emwp/gov/mogaha/ntis/web/caf/mwwd/action/CafMwWdOpenAction.do?method=selectListMwOpn&menu_id=CAFOPNWebMwOpenL&jndinm=CafMwWdOpenEJB&methodnm=selectListMwOpn&context=NTIS",
     "warning": null,
     "deep": false,
     "new": 0,
@@ -925,24 +925,24 @@
     "closed_out": 0
    },
    "41590": {
-    "at": "2026-11-23T05:19:13+09:00",
+    "at": "2026-11-23T10:43:10+09:00",
     "ok": true,
     "host": "eminwon.hscity.go.kr",
     "pages": 1,
     "rows": 100,
-    "toheo_rows": 12,
+    "toheo_rows": 3,
     "reached_cutoff": true,
     "error": null,
     "warning": null,
     "deep": false,
-    "new": 0,
+    "new": 3,
     "updated": 0,
     "completed_observed": 0,
     "dropped": 0,
     "closed_out": 0
    },
    "41310": {
-    "at": "2026-11-23T05:19:13+09:00",
+    "at": "2026-11-23T10:43:10+09:00",
     "ok": false,
     "host": null,
     "pages": 0,
@@ -960,7 +960,7 @@
    }
   },
   "permits": {
-   "at": "2026-11-23T05:19:13+09:00",
+   "at": "2026-11-23T10:43:10+09:00",
    "ok": false,
    "error": "세션 페이지 실패: seoul 계열 호스트 3개 연속 접속 불가 — 이번 실행에서 계열 전체를 건너뜀 (GitHub Actions 해외 IP 차단 추정; 집 PC 수집은 정상)",
    "fetched": 0,
@@ -971,7 +971,7 @@
    "kinds": {}
   },
   "network": {
-   "at": "2026-11-23T05:19:13+09:00",
+   "at": "2026-11-23T10:43:10+09:00",
    "unreachable": {
     "junggu.eminwon.seoul.kr": "SSLError",
     "eminwon.junggu.seoul.kr": "SSLError",
@@ -981,11 +981,9 @@
     "sd.eminwon.seoul.kr": "NameResolution",
     "eminwon.sd.go.kr": "SSLError",
     "eminwon.gwangjin.go.kr": "NameResolution",
-    "eminwon.ddm.go.kr": "ConnectTimeout",
     "eminwon.dobong.go.kr": "NameResolution",
     "eminwon.nowon.go.kr": "NameResolution",
-    "eminwon.yangcheon.go.kr": "ConnectTimeout",
-    "eminwon.ydp.go.kr": "ConnectTimeout",
+    "eminwon.ep.go.kr": "ReadTimeout",
     "eminwon.dongjak.go.kr": "SSLError",
     "eminwon.gangnam.go.kr": "NameResolution",
     "eminwon.songpa.go.kr": "NameResolution",
@@ -1000,43 +998,6 @@
    }
   },
   "runs": [
-   {
-    "at": "2026-11-19T11:41:35+09:00",
-    "deep": false,
-    "sites": 35,
-    "new": 37,
-    "completed_observed": 0,
-    "errors": 17,
-    "http_calls": 86,
-    "skipped": 0,
-    "max_sec": 1500,
-    "sec": 269,
-    "unreachable": [
-     "eminwon.dobong.go.kr",
-     "eminwon.dongjak.go.kr",
-     "eminwon.gangdong.go.kr",
-     "eminwon.gangnam.go.kr",
-     "eminwon.guri.go.kr",
-     "eminwon.gwangjin.go.kr",
-     "eminwon.junggu.go.kr",
-     "eminwon.junggu.seoul.kr",
-     "eminwon.nowon.go.kr",
-     "eminwon.sd.go.kr",
-     "eminwon.seongnam.go.kr",
-     "eminwon.songpa.go.kr",
-     "eminwon.uw21.go.kr",
-     "eminwon.uw21.net",
-     "eminwon.yangcheon.go.kr",
-     "eminwon.ydp.go.kr",
-     "eminwon.yongsan.go.kr",
-     "junggu.eminwon.seoul.kr",
-     "sd.eminwon.seoul.kr",
-     "yongsan.eminwon.seoul.kr"
-    ],
-    "blockedFamilies": {
-     "seoul": "seoul 계열 호스트 3개 연속 접속 불가 — 이번 실행에서 계열 전체를 건너뜀 (GitHub Actions 해외 IP 차단 추정; 집 PC 수집은 정상)"
-    }
-   },
    {
     "at": "2026-11-19T13:08:44+09:00",
     "deep": false,
@@ -1716,28 +1677,64 @@
     "blockedFamilies": {
      "seoul": "seoul 계열 호스트 3개 연속 접속 불가 — 이번 실행에서 계열 전체를 건너뜀 (GitHub Actions 해외 IP 차단 추정; 집 PC 수집은 정상)"
     }
+   },
+   {
+    "at": "2026-11-23T10:43:10+09:00",
+    "deep": false,
+    "sites": 35,
+    "new": 37,
+    "completed_observed": 0,
+    "errors": 16,
+    "http_calls": 68,
+    "skipped": 0,
+    "max_sec": 1500,
+    "sec": 301,
+    "unreachable": [
+     "eminwon.dobong.go.kr",
+     "eminwon.dongjak.go.kr",
+     "eminwon.ep.go.kr",
+     "eminwon.gangdong.go.kr",
+     "eminwon.gangnam.go.kr",
+     "eminwon.guri.go.kr",
+     "eminwon.gwangjin.go.kr",
+     "eminwon.junggu.go.kr",
+     "eminwon.junggu.seoul.kr",
+     "eminwon.nowon.go.kr",
+     "eminwon.sd.go.kr",
+     "eminwon.seongnam.go.kr",
+     "eminwon.songpa.go.kr",
+     "eminwon.uw21.go.kr",
+     "eminwon.uw21.net",
+     "eminwon.yongsan.go.kr",
+     "junggu.eminwon.seoul.kr",
+     "sd.eminwon.seoul.kr",
+     "yongsan.eminwon.seoul.kr"
+    ],
+    "blockedFamilies": {
+     "seoul": "seoul 계열 호스트 3개 연속 접속 불가 — 이번 실행에서 계열 전체를 건너뜀 (GitHub Actions 해외 IP 차단 추정; 집 PC 수집은 정상)"
+    }
    }
   ],
-  "at": "2026-11-23T05:19:13+09:00"
+  "at": "2026-11-23T10:43:10+09:00"
  },
  "tradesRun": {
-  "at": "2026-11-23T03:33:12+09:00",
-  "sec": 273,
-  "calls": 533,
+  "at": "2026-11-23T10:39:50+09:00",
+  "sec": 310,
+  "calls": 1066,
   "refreshed": 88,
   "backfilled": {},
   "stopped": ""
  },
  "model": {
-  "at": "2026-11-23T03:35:50+09:00",
+  "at": "2026-11-23T10:42:08+09:00",
   "groups": {
    "11110": {
     "complexes": 143,
-    "n": 11198
+    "n": 11199
    },
    "11140": {
     "complexes": 146,
-    "n": 17262
+    "n": 17264
    },
    "11170": {
     "complexes": 246,
@@ -1745,19 +1742,19 @@
    },
    "11200": {
     "complexes": 172,
-    "n": 51684
+    "n": 51688
    },
    "11215": {
     "complexes": 248,
-    "n": 28402
+    "n": 28399
    },
    "11230": {
     "complexes": 333,
-    "n": 51253
+    "n": 51255
    },
    "11260": {
     "complexes": 292,
-    "n": 45973
+    "n": 45970
    },
    "11290": {
     "complexes": 197,
@@ -1765,27 +1762,27 @@
    },
    "11305": {
     "complexes": 141,
-    "n": 27585
+    "n": 27586
    },
    "11320": {
     "complexes": 217,
-    "n": 64784
+    "n": 64786
    },
    "11350": {
     "complexes": 309,
-    "n": 147536
+    "n": 147538
    },
    "11380": {
     "complexes": 566,
-    "n": 47819
+    "n": 47824
    },
    "11410": {
     "complexes": 325,
-    "n": 43713
+    "n": 43714
    },
    "11440": {
     "complexes": 349,
-    "n": 51725
+    "n": 51727
    },
    "11470": {
     "complexes": 501,
@@ -1793,27 +1790,27 @@
    },
    "11500": {
     "complexes": 658,
-    "n": 84422
+    "n": 84421
    },
    "11530": {
     "complexes": 702,
-    "n": 72684
+    "n": 72687
    },
    "11545": {
     "complexes": 180,
-    "n": 24406
+    "n": 24405
    },
    "11560": {
     "complexes": 274,
-    "n": 62015
+    "n": 62017
    },
    "11590": {
     "complexes": 259,
-    "n": 52378
+    "n": 52376
    },
    "11620": {
     "complexes": 315,
-    "n": 46042
+    "n": 46043
    },
    "11650": {
     "complexes": 811,
@@ -1821,43 +1818,43 @@
    },
    "11680": {
     "complexes": 703,
-    "n": 84221
+    "n": 84225
    },
    "11710": {
     "complexes": 470,
-    "n": 90731
+    "n": 90729
    },
    "11740": {
     "complexes": 550,
-    "n": 76463
+    "n": 76460
    },
    "41111": {
     "complexes": 167,
-    "n": 67880
+    "n": 67890
    },
    "41113": {
     "complexes": 217,
-    "n": 77402
+    "n": 77396
    },
    "41115": {
     "complexes": 132,
-    "n": 37681
+    "n": 37685
    },
    "41117": {
     "complexes": 138,
-    "n": 109891
+    "n": 109889
    },
    "41131": {
     "complexes": 108,
-    "n": 18527
+    "n": 18522
    },
    "41133": {
     "complexes": 107,
-    "n": 28214
+    "n": 28212
    },
    "41135": {
     "complexes": 179,
-    "n": 108139
+    "n": 108141
    },
    "41150": {
     "complexes": 308,
@@ -1865,31 +1862,31 @@
    },
    "41171": {
     "complexes": 245,
-    "n": 45547
+    "n": 45537
    },
    "41173": {
     "complexes": 272,
-    "n": 100330
+    "n": 100333
    },
    "41190": {
     "complexes": 887,
-    "n": 148013
+    "n": 148016
    },
    "41210": {
     "complexes": 119,
-    "n": 75552
+    "n": 75551
    },
    "41220": {
     "complexes": 392,
-    "n": 121669
+    "n": 121649
    },
    "41250": {
     "complexes": 78,
-    "n": 30032
+    "n": 30028
    },
    "41271": {
     "complexes": 91,
-    "n": 49847
+    "n": 49852
    },
    "41273": {
     "complexes": 86,
@@ -1897,63 +1894,63 @@
    },
    "41281": {
     "complexes": 249,
-    "n": 101054
+    "n": 101059
    },
    "41285": {
     "complexes": 86,
-    "n": 58739
+    "n": 58741
    },
    "41287": {
     "complexes": 156,
-    "n": 94537
+    "n": 94541
    },
    "41290": {
     "complexes": 28,
-    "n": 9654
+    "n": 9655
    },
    "41310": {
     "complexes": 210,
-    "n": 46465
+    "n": 46469
    },
    "41360": {
     "complexes": 386,
-    "n": 168974
+    "n": 168988
    },
    "41370": {
     "complexes": 127,
-    "n": 60602
+    "n": 60600
    },
    "41390": {
     "complexes": 327,
-    "n": 126602
+    "n": 126621
    },
    "41410": {
     "complexes": 248,
-    "n": 81918
+    "n": 81914
    },
    "41430": {
     "complexes": 119,
-    "n": 38984
+    "n": 38979
    },
    "41450": {
     "complexes": 118,
-    "n": 42795
+    "n": 42803
    },
    "41461": {
     "complexes": 210,
-    "n": 37410
+    "n": 37405
    },
    "41463": {
     "complexes": 257,
-    "n": 109903
+    "n": 109893
    },
    "41465": {
     "complexes": 265,
-    "n": 117506
+    "n": 117522
    },
    "41480": {
     "complexes": 197,
-    "n": 87785
+    "n": 87774
    },
    "41500": {
     "complexes": 184,
@@ -1961,23 +1958,23 @@
    },
    "41550": {
     "complexes": 91,
-    "n": 47611
+    "n": 47615
    },
    "41570": {
     "complexes": 182,
-    "n": 91440
+    "n": 91451
    },
    "41590": {
     "complexes": 381,
-    "n": 180108
+    "n": 180105
    },
    "41610": {
     "complexes": 143,
-    "n": 45887
+    "n": 45885
    },
    "41630": {
     "complexes": 127,
-    "n": 59191
+    "n": 59190
    },
    "41650": {
     "complexes": 57,
@@ -1985,7 +1982,7 @@
    },
    "41670": {
     "complexes": 51,
-    "n": 18432
+    "n": 18433
    },
    "41800": {
     "complexes": 29,
@@ -1993,11 +1990,11 @@
    },
    "41820": {
     "complexes": 55,
-    "n": 4943
+    "n": 4946
    },
    "41830": {
     "complexes": 61,
-    "n": 8056
+    "n": 8057
    },
    "28110": {
     "complexes": 131,
@@ -2005,49 +2002,49 @@
    },
    "28177": {
     "complexes": 525,
-    "n": 64566
+    "n": 64570
    },
    "28185": {
     "complexes": 191,
-    "n": 100594
+    "n": 100591
    },
    "28200": {
     "complexes": 345,
-    "n": 112655
+    "n": 112656
    },
    "28237": {
     "complexes": 499,
-    "n": 125571
+    "n": 125572
    },
    "28245": {
     "complexes": 223,
-    "n": 89330
+    "n": 89339
    },
    "28260": {
     "complexes": 376,
-    "n": 117523
+    "n": 117525
    },
    "28710": {
     "complexes": 20,
-    "n": 3378
+    "n": 3379
    }
   }
  },
  "match": {
-  "at": "2026-11-23T03:36:52+09:00",
+  "at": "2026-11-23T10:43:10+09:00",
   "dongs": 2,
   "matched": 0,
   "changed": 0,
   "status": "blocked: 연결 실패 3회 연속 (ReadTimeout; GitHub Actions 해외 IP 차단 추정 — 집 PC 수집을 쓰세요)",
   "calls": 3,
-  "pending": 983,
+  "pending": 981,
   "emptyDongs": 2,
   "log": [
-   "error https://m.land.naver.com/complex/ajax/complexListByCortarNo?cortarNo=1117013000&rletTpCd=APT:ABYG:JGC: ReadTimeout: HTTPSConnectionPool(host='m.land.naver.com', port=443): Read timed out. (read timeout=20)",
-   "complexes_by_cortar 실패: error {'cortarNo': '1117013000'}",
-   "error https://m.land.naver.com/complex/ajax/complexListByCortarNo?cortarNo=1117013400&rletTpCd=APT:ABYG:JGC: ReadTimeout: HTTPSConnectionPool(host='m.land.naver.com', port=443): Read timed out. (read timeout=20)",
-   "complexes_by_cortar 실패: error {'cortarNo': '1117013400'}",
-   "error https://m.land.naver.com/complex/ajax/complexListByCortarNo?cortarNo=1117011600&rletTpCd=APT:ABYG:JGC: ReadTimeout: HTTPSConnectionPool(host='m.land.naver.com', port=443): Read timed out. (read timeout=20)"
+   "error https://m.land.naver.com/complex/ajax/complexListByCortarNo?cortarNo=1117011600&rletTpCd=APT:ABYG:JGC: ReadTimeout: HTTPSConnectionPool(host='m.land.naver.com', port=443): Read timed out. (read timeout=20)",
+   "complexes_by_cortar 실패: error {'cortarNo': '1117011600'}",
+   "error https://m.land.naver.com/complex/ajax/complexListByCortarNo?cortarNo=1117010900&rletTpCd=APT:ABYG:JGC: ReadTimeout: HTTPSConnectionPool(host='m.land.naver.com', port=443): Read timed out. (read timeout=20)",
+   "complexes_by_cortar 실패: error {'cortarNo': '1117010900'}",
+   "error https://m.land.naver.com/complex/ajax/complexListByCortarNo?cortarNo=1117011100&rletTpCd=APT:ABYG:JGC: ReadTimeout: HTTPSConnectionPool(host='m.land.naver.com', port=443): Read timed out. (read timeout=20)"
   ]
  },
  "listings": {
