@@ -1,62 +1,6 @@
 {
  "runs": [
   {
-   "at": "2026-11-12T12:47:39+09:00",
-   "deep": false,
-   "sites": 35,
-   "new": 0,
-   "completed_observed": 0,
-   "errors": 36,
-   "http_calls": 79,
-   "skipped": 0,
-   "max_sec": 1500,
-   "sec": 635,
-   "unreachable": [
-    "eminwon.anyang.go.kr",
-    "eminwon.ddm.go.kr",
-    "eminwon.dobong.go.kr",
-    "eminwon.dongjak.go.kr",
-    "eminwon.ep.go.kr",
-    "eminwon.gangbuk.go.kr",
-    "eminwon.gangdong.go.kr",
-    "eminwon.gangnam.go.kr",
-    "eminwon.gangseo.seoul.kr",
-    "eminwon.gccity.go.kr",
-    "eminwon.geumcheon.go.kr",
-    "eminwon.gm.go.kr",
-    "eminwon.guri.go.kr",
-    "eminwon.guro.go.kr",
-    "eminwon.gwanak.go.kr",
-    "eminwon.gwangjin.go.kr",
-    "eminwon.hanam.go.kr",
-    "eminwon.hscity.go.kr",
-    "eminwon.junggu.go.kr",
-    "eminwon.junggu.seoul.kr",
-    "eminwon.jungnang.go.kr",
-    "eminwon.mapo.go.kr",
-    "eminwon.nowon.go.kr",
-    "eminwon.sb.go.kr",
-    "eminwon.sd.go.kr",
-    "eminwon.sdm.go.kr",
-    "eminwon.seocho.go.kr",
-    "eminwon.seongnam.go.kr",
-    "eminwon.songpa.go.kr",
-    "eminwon.suwon.go.kr",
-    "eminwon.uw21.go.kr",
-    "eminwon.uw21.net",
-    "eminwon.yangcheon.go.kr",
-    "eminwon.ydp.go.kr",
-    "eminwon.yongin.go.kr",
-    "eminwon.yongsan.go.kr",
-    "jongno.eminwon.seoul.kr",
-    "junggu.eminwon.seoul.kr",
-    "yongsan.eminwon.seoul.kr"
-   ],
-   "blockedFamilies": {
-    "seoul": "seoul 계열 호스트 3개 연속 접속 불가 — 이번 실행에서 계열 전체를 건너뜀 (GitHub Actions 해외 IP 차단 추정; 집 PC 수집은 정상)"
-   }
-  },
-  {
    "at": "2026-11-12T22:44:47+09:00",
    "deep": false,
    "sites": 35,
@@ -2188,8 +2132,49 @@
    "blockedFamilies": {
     "seoul": "seoul 계열 호스트 3개 연속 접속 불가 — 이번 실행에서 계열 전체를 건너뜀 (GitHub Actions 해외 IP 차단 추정; 집 PC 수집은 정상)"
    }
+  },
+  {
+   "at": "2026-11-24T14:26:58+09:00",
+   "deep": false,
+   "sites": 35,
+   "new": 17,
+   "completed_observed": 0,
+   "errors": 21,
+   "http_calls": 71,
+   "skipped": 0,
+   "max_sec": 1500,
+   "sec": 321,
+   "unreachable": [
+    "eminwon.anyang.go.kr",
+    "eminwon.dobong.go.kr",
+    "eminwon.dongjak.go.kr",
+    "eminwon.gangnam.go.kr",
+    "eminwon.gccity.go.kr",
+    "eminwon.gm.go.kr",
+    "eminwon.guri.go.kr",
+    "eminwon.gwangjin.go.kr",
+    "eminwon.hanam.go.kr",
+    "eminwon.hscity.go.kr",
+    "eminwon.junggu.go.kr",
+    "eminwon.junggu.seoul.kr",
+    "eminwon.nowon.go.kr",
+    "eminwon.sd.go.kr",
+    "eminwon.seongnam.go.kr",
+    "eminwon.songpa.go.kr",
+    "eminwon.suwon.go.kr",
+    "eminwon.uw21.go.kr",
+    "eminwon.uw21.net",
+    "eminwon.yongin.go.kr",
+    "eminwon.yongsan.go.kr",
+    "junggu.eminwon.seoul.kr",
+    "sd.eminwon.seoul.kr",
+    "yongsan.eminwon.seoul.kr"
+   ],
+   "blockedFamilies": {
+    "seoul": "seoul 계열 호스트 3개 연속 접속 불가 — 이번 실행에서 계열 전체를 건너뜀 (GitHub Actions 해외 IP 차단 추정; 집 PC 수집은 정상)"
+   }
   }
  ],
- "updatedAt": "2026-11-24T12:19:27+09:00",
+ "updatedAt": "2026-11-24T14:26:58+09:00",
  "lastDeep": "2026-11-24"
 }
