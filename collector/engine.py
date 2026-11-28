@@ -402,7 +402,8 @@ class Engine:
         return {"found": found}
 
     # ------------------------------------------------------------- match
-    def run_match(self, max_dongs: int = 400, stale_days: int = 180, retry_days: int = 30) -> dict:
+    def run_match(self, max_dongs: int = 400, stale_days: int = 180, retry_days: int = 30,
+                  retry_unmatched: bool = False) -> dict:
         assert self.naver
         today = today_str()
         by_dong: dict[tuple[str, str], list[dict]] = defaultdict(list)
@@ -419,8 +420,13 @@ class Engine:
             return age > (stale_days if c.get("naverId") else retry_days)
 
         todo = [(k, v) for k, v in by_dong.items() if any(need(c) for c in v)]
+        if retry_unmatched:
+            # 연결 안 된 단지가 있는 동을 재시도 주기와 무관하게 다시 조회(실패가 '조회함' 으로 남은 데이터 복구용)
+            have = {k for k, _ in todo}
+            todo += [(k, v) for k, v in by_dong.items() if k not in have and any(not c.get("naverId") for c in v)]
         todo.sort(key=lambda kv: min(c.get("matchedAt") or "" for c in kv[1]))
         done, matched, changed, status = 0, 0, 0, "ok"
+        failed_dongs = 0
         empty_dongs, diag = 0, []   # 네이버가 단지 0건을 돌려준 동 수와 그 진단(응답 구조 확인용)
         try:
             for (sgg, umd_cd), cxs in todo[:max_dongs]:
@@ -433,8 +439,10 @@ class Engine:
                     if self.live[code].get("group") == grp:
                         cands.add(code + umd_cd)
                 naver_cx: list[dict] = []
+                fetched_ok = False
                 for cortar in sorted(cands):
                     naver_cx = self.naver.complexes(cortar)
+                    fetched_ok = fetched_ok or getattr(self.naver, "last_ok", True)
                     if naver_cx:
                         break
                 if not naver_cx:
@@ -447,6 +455,11 @@ class Engine:
                         except (TypeError, ValueError):
                             sample_txt = str(sample)[:1500]
                         diag.append({"cortar": sorted(cands), "log": self.naver.log[-4:], "sample": sample_txt})
+                if not fetched_ok:
+                    # 요청 자체가 실패한 동은 '조회함' 으로 표시하지 않는다(다음 실행에서 다시 시도)
+                    failed_dongs += 1
+                    done += 1
+                    continue
                 m = match_complexes(cxs, naver_cx)
                 for c in cxs:
                     c["matchedAt"] = today
@@ -474,7 +487,7 @@ class Engine:
             status = "empty: 네이버 응답에서 단지 목록을 찾지 못함 (config/naver.json 의 complexes_by_cortar·complex_fields 확인, data/naver_probe.json 참고)"
         self.fetch_log["match"] = {"at": now_kst().isoformat(timespec="seconds"), "dongs": done, "matched": matched,
                                    "changed": changed, "status": status, "calls": self.naver.calls,
-                                   "pending": max(0, len(todo) - done), "emptyDongs": empty_dongs,
+                                   "pending": max(0, len(todo) - done), "emptyDongs": empty_dongs, "failedDongs": failed_dongs,
                                    "log": self.naver.log[-30:]}
         if diag:
             self.store.write_json("naver_probe.json", {"at": self.fetch_log["match"]["at"], "kind": "match",

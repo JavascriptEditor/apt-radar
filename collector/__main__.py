@@ -91,6 +91,7 @@ def main(argv=None) -> int:
     s.add_argument("--group", action="append")
     s = sub.add_parser("match")
     s.add_argument("--max-dongs", type=int, default=env_int("MATCH_MAX_DONGS", 400))
+    s.add_argument("--retry-unmatched", action="store_true", help="연결 안 된 단지가 있는 동을 지금 다시 조회")
     s = sub.add_parser("export")
     s.add_argument("--out", default="site")
     s.add_argument("--notify", action="store_true", help="export 뒤 텔레그램 요약 알림(collector.notify.send_digest)")
@@ -137,7 +138,7 @@ def main(argv=None) -> int:
         return 0
     if args.cmd == "match":
         eng = build(args, need_naver=True)
-        print(json.dumps(eng.run_match(max_dongs=args.max_dongs), ensure_ascii=False))
+        print(json.dumps(eng.run_match(max_dongs=args.max_dongs, retry_unmatched=args.retry_unmatched), ensure_ascii=False))
         return 0
     if args.cmd == "export":
         from .export import export_site

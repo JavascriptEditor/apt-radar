@@ -126,6 +126,7 @@ class NaverClient:
         self.max_calls = max_calls
         self.blocked_reason = ""
         self.empty_streak = 0
+        self.last_ok = True
         self.conn_fail = 0  # 연속 연결 실패(타임아웃·리셋) 수 — CONN_FAIL_BLOCK 이면 Blocked
         self.state_path = Path(state_path) if state_path else None
         self.state = {"complexes_by_cortar": None, "articles": None}
@@ -197,6 +198,10 @@ class NaverClient:
             if r.status_code in (403, 429):
                 self.blocked_reason = f"HTTP {r.status_code} ({ep.get('name')})"
             return None, f"http:{r.status_code}"
+        if r.status_code in (301, 302, 303, 307, 308):
+            # JSON 주소가 리다이렉트를 돌려주면 요청 제한(잠시 차단)이다 — 계속 두드리지 않고 멈춘다
+            self.blocked_reason = f"HTTP {r.status_code} 요청 제한 ({ep.get('name')}) — 몇 시간 뒤 다시 시도"
+            return None, f"http:{r.status_code}"
         if r.status_code != 200:
             return None, f"http:{r.status_code}"
         ctype = r.headers.get("Content-Type", "")
@@ -255,6 +260,7 @@ class NaverClient:
     def complexes(self, cortar_no: str) -> list[dict]:
         f = self.cfg["complex_fields"]
         lst, ep, _ = self._try_endpoints("complexes_by_cortar", f["id"], cortarNo=cortar_no)
+        self.last_ok = ep is not None   # False = 요청 실패(빈 목록과 구분: 호출자가 '조회함' 으로 표시하면 안 됨)
         out = []
         for d in lst:
             if not isinstance(d, dict):
