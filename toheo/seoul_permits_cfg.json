@@ -12,5 +12,5 @@
  },
  "discovered": null,
  "checked_at": null,
- "error": "세션 페이지 실패: seoul 계열 호스트 3개 연속 접속 불가 — 이번 실행에서 계열 전체를 건너뜀 (GitHub Actions 해외 IP 차단 추정; 집 PC 수집은 정상)"
+ "error": null
 }
