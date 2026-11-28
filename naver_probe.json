@@ -1,7 +1,7 @@
 {
- "at": "2026-11-29T00:06:04+09:00",
+ "at": "2026-11-29T00:17:55+09:00",
  "kind": "match",
- "status": "ok",
+ "status": "blocked: HTTP 307 요청 제한 (mobile) — 몇 시간 뒤 다시 시도",
  "diag": [
   {
    "cortar": [
@@ -10,7 +10,17 @@
    "log": [
     "complexes_by_cortar 실패: html {'cortarNo': '1120016200'}"
    ],
-   "sample": "{\"result\": [{\"hscpNo\": \"8105\", \"hscpNm\": \"금호베스트빌\", \"hscpTypeCd\": \"A01\", \"hscpTypeNm\": \"아파트\", \"lat\": \"37.549355\", \"lng\": \"127.057575\", \"cortarNo\": \"1120011800\", \"dealCnt\": 2, \"leaseCnt\": 0, \"rentCnt\": 0, \"strmRentCnt\": 0, \"hasBookMark\": 0}, {\"hscpNo\": \"204810\", \"hscpNm\": \"도시형(67-22)\", \"hscpTypeCd\": \"A01\", \"hscpTypeNm\": \"아파트\", \"lat\": \"37.548495\", \"lng\": \"127.061916\", \"cortarNo\": \"1120011800\", \"dealCnt\": 0, \"leaseCnt\": 0, \"rentCnt\": 0, \"strmRentCnt\": 0, \"hasBookMark\": 0}, {\"hscpNo\": \"27132\", \"hscpNm\": \"서울숲IPARK\", \"hscpTypeCd\": \"A01\", \"hscpTypeNm\": \"아파트\", \"lat\": \"37.5525\", \"lng\": \"127.069\", \"cortarNo\": \"1120011800\", \"dealCnt\": 5, \"leaseCnt\": 3, \"rentCnt\": 2, \"strmRentCnt\": 0, \"hasBookMark\": 0}, {\"hscpNo\": \"104719\", \"hscpNm\": \"성동리버뷰\", \"hscpTypeCd\": \"A01\", \"hscpTypeNm\": \"아파트\", \"lat\": \"37.555262\", \"lng\": \"127.06969\", \"cortarNo\": \"1120011800\", \"dealCnt\": 0, \"leaseCnt\": 0, \"rentCnt\": 0, \"strmRentCnt\": 0, \"hasBookMark\": 0}, {\"hscpNo\": \"1178\", \"hscpNm\": \"송정건영\", \"hscpTypeCd\": \"A01\", \"hscpTypeNm\": \"아파트\", \"lat\": \"37.556024\", \"lng\": \"127.070258\", \"cortarNo\": \"1120011800\", \"dealCnt\": 8, \"leaseCnt\": 0, \"rentCnt\": 1, \"strmRentCnt\": 0, \"hasBookMark\": 0}, {\"hscpNo\": \"17302\", \"hscpNm\": \"송정센스빌\", \"hscpTypeCd\": \"A02\", \"hscpTypeNm\": \"오피스텔\", \"lat\": \"37.549678\", \"lng\": \"127.056349\", \"cortarNo\": \"1120011800\", \"dealCnt\": 0, \"leaseCnt\": 0, \"rentCnt\": 0, \"strmRentCnt\": 0, \"hasBookMark\": 0}, {\"hscpNo\": \"118352\", \"hscpNm\": \"양지쉐르빌\", \"hscpTypeCd\": \"A01\", \"hscpTypeNm\": \"아파트\", \"lat\": \"37.557629\", \"lng\": \"127.072"
+   "sample": null
+  },
+  {
+   "cortar": [
+    "1130510800"
+   ],
+   "log": [
+    "complexes_by_cortar 실패: html {'cortarNo': '1120016200'}",
+    "complexes_by_cortar 실패: html {'cortarNo': '1130510800'}"
+   ],
+   "sample": "{\"result\": [{\"hscpNo\": \"130606\", \"hscpNm\": \"HK팰리스\", \"hscpTypeCd\": \"A02\", \"hscpTypeNm\": \"오피스텔\", \"lat\": \"37.605576\", \"lng\": \"127.032299\", \"cortarNo\": \"1129013600\", \"dealCnt\": 0, \"leaseCnt\": 0, \"rentCnt\": 0, \"strmRentCnt\": 0, \"hasBookMark\": 0}, {\"hscpNo\": \"130605\", \"hscpNm\": \"HK팰리스(주상복합)\", \"hscpTypeCd\": \"A01\", \"hscpTypeNm\": \"아파트\", \"lat\": \"37.605577\", \"lng\": \"127.032296\", \"cortarNo\": \"1129013600\", \"dealCnt\": 0, \"leaseCnt\": 0, \"rentCnt\": 0, \"strmRentCnt\": 0, \"hasBookMark\": 0}, {\"hscpNo\": \"136167\", \"hscpNm\": \"갤럭시하월곡\", \"hscpTypeCd\": \"A02\", \"hscpTypeNm\": \"오피스텔\", \"lat\": \"37.604129\", \"lng\": \"127.03281\", \"cortarNo\": \"1129013600\", \"dealCnt\": 0, \"leaseCnt\": 0, \"rentCnt\": 1, \"strmRentCnt\": 0, \"hasBookMark\": 0}, {\"hscpNo\": \"136166\", \"hscpNm\": \"갤럭시하월곡(주상복합)\", \"hscpTypeCd\": \"A01\", \"hscpTypeNm\": \"아파트\", \"lat\": \"37.604129\", \"lng\": \"127.03281\", \"cortarNo\": \"1129013600\", \"dealCnt\": 0, \"leaseCnt\": 0, \"rentCnt\": 0, \"strmRentCnt\": 0, \"hasBookMark\": 0}, {\"hscpNo\": \"26644\", \"hscpNm\": \"광남캐스빌\", \"hscpTypeCd\": \"A01\", \"hscpTypeNm\": \"아파트\", \"lat\": \"37.604841\", \"lng\": \"127.031994\", \"cortarNo\": \"1129013600\", \"dealCnt\": 2, \"leaseCnt\": 0, \"rentCnt\": 1, \"strmRentCnt\": 0, \"hasBookMark\": 0}, {\"hscpNo\": \"3540\", \"hscpNm\": \"구동신\", \"hscpTypeCd\": \"A04\", \"hscpTypeNm\": \"재건축\", \"lat\": \"37.606128\", \"lng\": \"127.036224\", \"cortarNo\": \"1129013600\", \"dealCnt\": 0, \"leaseCnt\": 0, \"rentCnt\": 0, \"strmRentCnt\": 0, \"hasBookMark\": 0}, {\"hscpNo\": \"26638\", \"hscpNm\": \"길음서희스타힐스(주상복합)\", \"hscpTypeCd\": \"A01\", \"hscpTypeNm\": \"아파트\", \"lat\": \"37.6049"
   }
  ]
 }

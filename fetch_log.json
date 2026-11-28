@@ -364,7 +364,7 @@
  "toheo": {
   "sites": {
    "11110": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": true,
     "host": "jongno.eminwon.seoul.kr",
     "pages": 1,
@@ -381,7 +381,7 @@
     "closed_out": 0
    },
    "11140": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": false,
     "host": null,
     "pages": 0,
@@ -398,7 +398,7 @@
     "closed_out": 0
    },
    "11170": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": true,
     "host": "eminwon.yongsan.go.kr",
     "pages": 1,
@@ -408,14 +408,14 @@
     "error": null,
     "warning": null,
     "deep": false,
-    "new": 9,
+    "new": 0,
     "updated": 0,
     "completed_observed": 0,
     "dropped": 0,
     "closed_out": 0
    },
    "11200": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": false,
     "host": null,
     "pages": 0,
@@ -432,7 +432,7 @@
     "closed_out": 0
    },
    "11215": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": true,
     "host": "gwangjin.eminwon.seoul.kr",
     "pages": 1,
@@ -442,14 +442,14 @@
     "error": null,
     "warning": null,
     "deep": false,
-    "new": 3,
+    "new": 0,
     "updated": 0,
     "completed_observed": 0,
     "dropped": 0,
     "closed_out": 0
    },
    "11230": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": true,
     "host": "eminwon.ddm.go.kr",
     "pages": 1,
@@ -466,7 +466,7 @@
     "closed_out": 0
    },
    "11260": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": true,
     "host": "eminwon.jungnang.go.kr",
     "pages": 1,
@@ -483,7 +483,7 @@
     "closed_out": 0
    },
    "11290": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": true,
     "host": "eminwon.sb.go.kr",
     "pages": 1,
@@ -500,7 +500,7 @@
     "closed_out": 0
    },
    "11305": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": true,
     "host": "eminwon.gangbuk.go.kr",
     "pages": 1,
@@ -517,7 +517,7 @@
     "closed_out": 0
    },
    "11320": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": true,
     "host": "dobong.eminwon.seoul.kr",
     "pages": 1,
@@ -527,14 +527,14 @@
     "error": null,
     "warning": null,
     "deep": false,
-    "new": 17,
+    "new": 0,
     "updated": 0,
     "completed_observed": 0,
     "dropped": 0,
     "closed_out": 0
    },
    "11350": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": false,
     "host": null,
     "pages": 0,
@@ -551,7 +551,7 @@
     "closed_out": 0
    },
    "11380": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": true,
     "host": "eminwon.ep.go.kr",
     "pages": 1,
@@ -568,7 +568,7 @@
     "closed_out": 0
    },
    "11410": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": true,
     "host": "eminwon.sdm.go.kr",
     "pages": 1,
@@ -585,12 +585,12 @@
     "closed_out": 0
    },
    "11440": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": true,
     "host": "eminwon.mapo.go.kr",
-    "pages": 2,
-    "rows": 200,
-    "toheo_rows": 9,
+    "pages": 1,
+    "rows": 100,
+    "toheo_rows": 1,
     "reached_cutoff": true,
     "error": null,
     "warning": null,
@@ -602,7 +602,7 @@
     "closed_out": 0
    },
    "11470": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": true,
     "host": "eminwon.yangcheon.go.kr",
     "pages": 1,
@@ -619,12 +619,12 @@
     "closed_out": 0
    },
    "11500": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": true,
     "host": "eminwon.gangseo.seoul.kr",
-    "pages": 2,
-    "rows": 200,
-    "toheo_rows": 23,
+    "pages": 1,
+    "rows": 100,
+    "toheo_rows": 14,
     "reached_cutoff": true,
     "error": null,
     "warning": null,
@@ -636,7 +636,7 @@
     "closed_out": 0
    },
    "11530": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": true,
     "host": "eminwon.guro.go.kr",
     "pages": 1,
@@ -653,7 +653,7 @@
     "closed_out": 0
    },
    "11545": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": true,
     "host": "eminwon.geumcheon.go.kr",
     "pages": 1,
@@ -670,12 +670,12 @@
     "closed_out": 0
    },
    "11560": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": true,
     "host": "eminwon.ydp.go.kr",
-    "pages": 2,
-    "rows": 200,
-    "toheo_rows": 25,
+    "pages": 1,
+    "rows": 100,
+    "toheo_rows": 13,
     "reached_cutoff": true,
     "error": null,
     "warning": null,
@@ -687,7 +687,7 @@
     "closed_out": 0
    },
    "11590": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": true,
     "host": "dongjak.eminwon.seoul.kr",
     "pages": 1,
@@ -697,14 +697,14 @@
     "error": null,
     "warning": null,
     "deep": false,
-    "new": 13,
+    "new": 0,
     "updated": 0,
     "completed_observed": 0,
     "dropped": 0,
     "closed_out": 0
    },
    "11620": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": true,
     "host": "eminwon.gwanak.go.kr",
     "pages": 1,
@@ -721,12 +721,12 @@
     "closed_out": 0
    },
    "11650": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": true,
     "host": "eminwon.seocho.go.kr",
-    "pages": 2,
-    "rows": 200,
-    "toheo_rows": 12,
+    "pages": 1,
+    "rows": 100,
+    "toheo_rows": 3,
     "reached_cutoff": true,
     "error": null,
     "warning": null,
@@ -738,7 +738,7 @@
     "closed_out": 0
    },
    "11680": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": false,
     "host": null,
     "pages": 0,
@@ -755,24 +755,24 @@
     "closed_out": 0
    },
    "11710": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": true,
     "host": "songpa.eminwon.seoul.kr",
-    "pages": 2,
-    "rows": 200,
-    "toheo_rows": 19,
+    "pages": 1,
+    "rows": 100,
+    "toheo_rows": 8,
     "reached_cutoff": true,
     "error": null,
     "warning": null,
     "deep": false,
-    "new": 19,
+    "new": 0,
     "updated": 0,
     "completed_observed": 0,
     "dropped": 0,
     "closed_out": 0
    },
    "11740": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": true,
     "host": "eminwon.gangdong.go.kr",
     "pages": 1,
@@ -789,7 +789,7 @@
     "closed_out": 0
    },
    "41290": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": false,
     "host": "eminwon.gccity.go.kr",
     "pages": 0,
@@ -806,7 +806,7 @@
     "closed_out": 0
    },
    "41210": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": true,
     "host": "eminwon.gm.go.kr",
     "pages": 1,
@@ -823,7 +823,7 @@
     "closed_out": 0
    },
    "41130": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": false,
     "host": null,
     "pages": 0,
@@ -840,12 +840,12 @@
     "closed_out": 0
    },
    "41110": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": true,
     "host": "eminwon.suwon.go.kr",
-    "pages": 4,
-    "rows": 400,
-    "toheo_rows": 88,
+    "pages": 2,
+    "rows": 200,
+    "toheo_rows": 44,
     "reached_cutoff": true,
     "error": null,
     "warning": null,
@@ -857,7 +857,7 @@
     "closed_out": 0
    },
    "41170": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": true,
     "host": "eminwon.anyang.go.kr",
     "pages": 1,
@@ -874,14 +874,14 @@
     "closed_out": 0
    },
    "41460": {
-    "at": "2026-11-28T23:58:37+09:00",
-    "ok": false,
+    "at": "2026-11-29T00:21:26+09:00",
+    "ok": true,
     "host": "eminwon.yongin.go.kr",
-    "pages": 0,
-    "rows": 0,
-    "toheo_rows": 0,
-    "reached_cutoff": false,
-    "error": "1페이지 실패: HTTP 400 https://eminwon.yongin.go.kr/emwp/gov/mogaha/ntis/web/caf/mwwd/action/CafMwWdOpenAction.do?method=selectListMwOpn&menu_id=CAFOPNWebMwOpenL&jndinm=CafMwWdOpenEJB&methodnm=selectListMwOpn&context=NTIS",
+    "pages": 3,
+    "rows": 266,
+    "toheo_rows": 32,
+    "reached_cutoff": true,
+    "error": null,
     "warning": null,
     "deep": false,
     "new": 0,
@@ -891,7 +891,7 @@
     "closed_out": 0
    },
    "41430": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": false,
     "host": null,
     "pages": 0,
@@ -908,7 +908,7 @@
     "closed_out": 0
    },
    "41450": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": true,
     "host": "eminwon.hanam.go.kr",
     "pages": 1,
@@ -925,11 +925,11 @@
     "closed_out": 0
    },
    "41590": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": true,
     "host": "eminwon.hscity.go.kr",
-    "pages": 5,
-    "rows": 500,
+    "pages": 3,
+    "rows": 300,
     "toheo_rows": 18,
     "reached_cutoff": true,
     "error": null,
@@ -942,7 +942,7 @@
     "closed_out": 0
    },
    "41310": {
-    "at": "2026-11-28T23:58:37+09:00",
+    "at": "2026-11-29T00:21:26+09:00",
     "ok": false,
     "host": null,
     "pages": 0,
@@ -960,38 +960,38 @@
    }
   },
   "permits": {
-   "at": "2026-11-28T23:58:37+09:00",
+   "at": "2026-11-29T00:21:26+09:00",
    "ok": true,
    "error": null,
-   "fetched": 8594,
-   "added": 8594,
+   "fetched": 8333,
+   "added": 0,
    "matched": 7758,
    "by_gu": {
     "종로구": 52,
     "중구": 78,
-    "용산구": 166,
+    "용산구": 163,
     "성동구": 177,
     "광진구": 132,
-    "동대문구": 327,
+    "동대문구": 326,
     "중랑구": 323,
-    "성북구": 392,
-    "강북구": 262,
-    "도봉구": 384,
-    "노원구": 997,
-    "은평구": 537,
-    "서대문구": 369,
-    "마포구": 254,
-    "양천구": 325,
-    "강서구": 615,
-    "구로구": 451,
-    "금천구": 246,
-    "영등포구": 318,
-    "동작구": 269,
-    "관악구": 340,
-    "서초구": 264,
-    "강남구": 387,
-    "송파구": 532,
-    "강동구": 397
+    "성북구": 388,
+    "강북구": 252,
+    "도봉구": 372,
+    "노원구": 941,
+    "은평구": 525,
+    "서대문구": 353,
+    "마포구": 244,
+    "양천구": 317,
+    "강서구": 589,
+    "구로구": 442,
+    "금천구": 239,
+    "영등포구": 301,
+    "동작구": 260,
+    "관악구": 336,
+    "서초구": 259,
+    "강남구": 376,
+    "송파구": 523,
+    "강동구": 365
    },
    "total": 8594,
    "kinds": {
@@ -1023,12 +1023,11 @@
    }
   },
   "network": {
-   "at": "2026-11-28T23:58:37+09:00",
+   "at": "2026-11-29T00:21:26+09:00",
    "unreachable": {
     "junggu.eminwon.seoul.kr": "SSLError",
     "eminwon.junggu.seoul.kr": "SSLError",
     "eminwon.junggu.go.kr": "NameResolution",
-    "yongsan.eminwon.seoul.kr": "SSLError",
     "sd.eminwon.seoul.kr": "NameResolution",
     "eminwon.sd.go.kr": "SSLError",
     "nowon.eminwon.seoul.kr": "SSLError",
@@ -1044,42 +1043,6 @@
    "blockedFamilies": {}
   },
   "runs": [
-   {
-    "at": "2026-11-25T00:48:30+09:00",
-    "deep": false,
-    "sites": 35,
-    "new": 120,
-    "completed_observed": 1,
-    "errors": 15,
-    "http_calls": 87,
-    "skipped": 0,
-    "max_sec": 1500,
-    "sec": 265,
-    "unreachable": [
-     "eminwon.dobong.go.kr",
-     "eminwon.dongjak.go.kr",
-     "eminwon.gangdong.go.kr",
-     "eminwon.gangnam.go.kr",
-     "eminwon.guri.go.kr",
-     "eminwon.gwangjin.go.kr",
-     "eminwon.junggu.go.kr",
-     "eminwon.junggu.seoul.kr",
-     "eminwon.nowon.go.kr",
-     "eminwon.sd.go.kr",
-     "eminwon.seongnam.go.kr",
-     "eminwon.songpa.go.kr",
-     "eminwon.uw21.go.kr",
-     "eminwon.uw21.net",
-     "eminwon.yangcheon.go.kr",
-     "eminwon.yongsan.go.kr",
-     "junggu.eminwon.seoul.kr",
-     "sd.eminwon.seoul.kr",
-     "yongsan.eminwon.seoul.kr"
-    ],
-    "blockedFamilies": {
-     "seoul": "seoul 계열 호스트 3개 연속 접속 불가 — 이번 실행에서 계열 전체를 건너뜀 (GitHub Actions 해외 IP 차단 추정; 집 PC 수집은 정상)"
-    }
-   },
    {
     "at": "2026-11-25T06:19:54+09:00",
     "deep": true,
@@ -1770,9 +1733,38 @@
      "yongsan.eminwon.seoul.kr"
     ],
     "blockedFamilies": {}
+   },
+   {
+    "at": "2026-11-29T00:21:26+09:00",
+    "deep": false,
+    "sites": 35,
+    "new": 0,
+    "completed_observed": 0,
+    "errors": 8,
+    "http_calls": 96,
+    "skipped": 0,
+    "max_sec": 0,
+    "sec": 266,
+    "unreachable": [
+     "eminwon.gangnam.go.kr",
+     "eminwon.gccity.go.kr",
+     "eminwon.guri.go.kr",
+     "eminwon.junggu.go.kr",
+     "eminwon.junggu.seoul.kr",
+     "eminwon.nowon.go.kr",
+     "eminwon.sd.go.kr",
+     "eminwon.seongnam.go.kr",
+     "eminwon.uw21.go.kr",
+     "eminwon.uw21.net",
+     "gangnam.eminwon.seoul.kr",
+     "junggu.eminwon.seoul.kr",
+     "nowon.eminwon.seoul.kr",
+     "sd.eminwon.seoul.kr"
+    ],
+    "blockedFamilies": {}
    }
   ],
-  "at": "2026-11-28T23:58:37+09:00"
+  "at": "2026-11-29T00:21:26+09:00"
  },
  "tradesRun": {
   "at": "2026-11-28T12:14:26+09:00",
@@ -2089,25 +2081,26 @@
   }
  },
  "match": {
-  "at": "2026-11-29T00:06:04+09:00",
-  "dongs": 40,
-  "matched": 528,
+  "at": "2026-11-29T00:17:55+09:00",
+  "dongs": 42,
+  "matched": 515,
   "changed": 0,
-  "status": "ok",
-  "calls": 40,
-  "pending": 924,
-  "emptyDongs": 1,
-  "failedDongs": 1,
+  "status": "blocked: HTTP 307 요청 제한 (mobile) — 몇 시간 뒤 다시 시도",
+  "calls": 43,
+  "pending": 883,
+  "emptyDongs": 2,
+  "failedDongs": 2,
   "log": [
-   "complexes_by_cortar 실패: html {'cortarNo': '1120016200'}"
+   "complexes_by_cortar 실패: html {'cortarNo': '1120016200'}",
+   "complexes_by_cortar 실패: html {'cortarNo': '1130510800'}"
   ]
  },
  "listings": {
-  "at": "2026-11-29T00:11:16+09:00",
-  "complexes": 15,
-  "total": 538,
+  "at": "2026-11-29T00:21:25+09:00",
+  "complexes": 10,
+  "total": 1053,
   "status": "partial",
-  "calls": 30,
+  "calls": 20,
   "n": 0,
   "nAll": 0,
   "nGone": 0,
@@ -2123,6 +2116,6 @@
   "truncated": 0,
   "stale": 0,
   "suspect": 0,
-  "failed": 15
+  "failed": 10
  }
 }
