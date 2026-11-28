@@ -4,6 +4,7 @@
 
 - `zone_of`               : 단지(sgg, 법정동) 가 아파트 토허구역인지 (level 2 전체 / 1 일부 / 0 없음)
 - `link_gone_to_trades`   : gone 이벤트 ↔ 실거래 (confirmed / pending / unconfirmed / relisted)
+- `link_count_drops`      : 단지별 매물 수 감소 ↔ 실거래 (호가·평형 없이 단지·기간으로만. 매물 목록을 못 받을 때의 내림 추정)
 - `link_permits_to_trades`: 허가 완료 ↔ 실거래 (같은 단지, 허가일 이후 75일 안, 가장 가까운 것 1:1)
 - `estimate_score`        : 매물 내림이 '허가 접수' 일 가능성 점수 [0, 1] (추정 라벨 필수)
 - `complex_summary`       : c/<cid>.json 의 toheo 블록
@@ -29,6 +30,7 @@ GONE_BEFORE_DAYS = 14       # 계약일 >= goneAt - 14d (계약 뒤 매물이 �
 GONE_AFTER_DAYS = 60        # 계약일 <= goneAt + 60d
 GONE_PENDING_DAYS = 75      # goneAt + 75d 까지는 pending, 지나면 unconfirmed
 RELIST_DAYS = 21            # goneAt 뒤 21일 안에 relist 가 있으면 relisted
+COUNT_MAX_GAP_DAYS = 30     # 건수 관측 간격이 이보다 길면 그 사이 감소는 내림으로 보지 않는다(언제 줄었는지 알 수 없음)
 PRICE_LO, PRICE_HI = 0.85, 1.03   # 실거래가 / 호가
 PERMIT_AFTER_DAYS = 75      # 허가일 ~ +75d 안의 실거래
 
@@ -226,6 +228,83 @@ def link_gone_to_trades(events: list[dict], trades_by_cid: dict[str, list], toda
     return rows
 
 
+# ----------------------------------------------------------------------------- 매물 수 감소 ↔ 실거래
+
+def link_count_drops(counts: list[dict], trades_by_cid: dict[str, list], today) -> list[dict]:
+    """단지별 매매 매물 수 관측(listing_counts) → 감소 구간마다 '매물 내림(추정)' 행.
+
+    매물 목록(호가·평형·층)을 받지 못할 때 쓰는 건수 기반 추정이다. 어떤 매물이 내려갔는지는 모르고
+    '이 단지에서 prevDate~date 사이에 n건 줄었다' 만 안다. 그래서 실거래 연결은 가격·평형 없이 단지와 날짜로만 한다.
+
+    - 연속한 두 관측 (prevDate, from) → (date, to) 에서 to < from 이면 n = from − to 건 내림. 간격이 30일을 넘으면 버린다.
+    - relisted : date 뒤 21일 안의 관측이 to 보다 늘어난 만큼(최대 n)은 다시 올라온 것으로 본다.
+    - confirmed: 계약일 ∈ [prevDate−14d, date+60d] 인 실거래를 남은 건수만큼 1:1 로 붙인다(거래 하나는 한 번만, 이른 감소부터).
+    - 남은 건은 date+75d 까지 pending, 지나면 unconfirmed.
+    반환 행(감소 구간당 1개): link_gone_to_trades 와 같은 키 + {src:'count', n, from, to, prevDate,
+    units:{confirmed, relisted, pending, unconfirmed}, trades:[실거래 참조…]}.
+    status 는 대표 상태(confirmed > pending > unconfirmed > relisted 순으로 건수가 있는 것), trade 는 가장 가까운 실거래.
+    """
+    today = _date(today) or dt.date.today()
+    by_cid: dict[str, list[tuple[dt.date, int]]] = defaultdict(list)
+    for r in counts or []:
+        d, n = _date(r.get("date")), _int(r.get("deal"))
+        if d and n is not None and r.get("cid") and d <= today:
+            by_cid[str(r["cid"])].append((d, n))
+    rows: list[dict] = []
+    for cid in sorted(by_cid):
+        obs = sorted(dict(by_cid[cid]).items())            # 같은 날짜가 여러 번이면 마지막 값
+        trades = usable_trades(trades_by_cid.get(cid), today)
+        used: set[int] = set()
+        for i in range(1, len(obs)):
+            (d0, n0), (d1, n1) = obs[i - 1], obs[i]
+            if n1 >= n0 or (d1 - d0).days > COUNT_MAX_GAP_DAYS:
+                continue
+            n = n0 - n1
+            hi_relist = d1 + dt.timedelta(days=RELIST_DAYS)
+            peak = max((m for d, m in obs[i + 1:] if d <= hi_relist), default=n1)
+            relisted = min(n, max(0, peak - n1))
+            lo, hi = d0 - dt.timedelta(days=GONE_BEFORE_DAYS), d1 + dt.timedelta(days=GONE_AFTER_DAYS)
+            cands = sorted(((abs((_date(t["date"]) - d1).days), ti) for ti, t in enumerate(trades)
+                            if ti not in used and lo <= _date(t["date"]) <= hi))
+            picked = [ti for _, ti in cands[:n - relisted]]
+            used.update(picked)
+            refs = [_trade_ref(trades[ti], (_date(trades[ti]["date"]) - d1).days) for ti in picked]
+            rest = n - relisted - len(picked)
+            waiting = today <= d1 + dt.timedelta(days=GONE_PENDING_DAYS)
+            units = {"confirmed": len(picked), "relisted": relisted, "pending": rest if waiting else 0,
+                     "unconfirmed": 0 if waiting else rest}
+            status = next(k for k in ("confirmed", "pending", "unconfirmed", "relisted") if units[k])
+            rows.append({"id": f"cnt|{cid}|{d1.isoformat()}", "src": "count", "cid": cid, "grp": None, "area": None, "dong": "",
+                         "floor": None, "price": None, "date": d1.isoformat(), "prevDate": d0.isoformat(), "n": n,
+                         "from": n0, "to": n1, "units": units, "status": status, "trade": refs[0] if refs else None,
+                         "trades": refs, "daysToTrade": refs[0]["days"] if refs else None})
+    return rows
+
+
+def unit_links(links: list[dict]) -> list[dict]:
+    """적중률 계산용: 건수 기반 행(src='count')을 내림 1건 단위로 편다. 매물 단위 행은 그대로."""
+    out: list[dict] = []
+    for l in links or []:
+        if l.get("src") != "count":
+            out.append(l)
+            continue
+        for status, k in (l.get("units") or {}).items():
+            out.extend({"status": status} for _ in range(k))
+    return out
+
+
+def count_series(counts: list[dict], today, days: int = 90) -> list[list]:
+    """한 단지의 관측 행 → 최근 days 일의 [[date, n], …] (날짜 오름차순)."""
+    today = _date(today) or dt.date.today()
+    since = today - dt.timedelta(days=days)
+    obs = {}
+    for r in counts or []:
+        d, n = _date(r.get("date")), _int(r.get("deal"))
+        if d and n is not None and since <= d <= today:
+            obs[d.isoformat()] = n
+    return [[d, obs[d]] for d in sorted(obs)]
+
+
 # ----------------------------------------------------------------------------- 허가 ↔ 실거래
 
 def link_permits_to_trades(permits, trades_by_cid: dict[str, list], today=None) -> dict[str, dict | None]:
@@ -391,11 +470,13 @@ def complex_summary(cid: str, c: dict, events: list[dict], permits: list[dict], 
                     zone: dict, today, *, listings: list[dict] | None = None, links: list[dict] | None = None,
                     permit_links: dict[str, dict | None] | None = None, region_label: str = "",
                     estimate: dict | None = None, region_sgg: str = "", scores: dict[str, float] | None = None,
-                    open_avg30: float | None = None) -> dict:
+                    open_avg30: float | None = None, counts_rows: list[dict] | None = None,
+                    count_links: list[dict] | None = None) -> dict:
     """c/<cid>.json 의 toheo 블록(DESIGN 3절 2항).
 
     events: 이 단지의 매물 이벤트, permits: 이 단지로 매칭된 허가 행, trades: 모델 파일 trades,
     cases_stats: 구 통계(cases.stats_for 결과)|None, zone: zone_of() 결과.
+    counts_rows(이 단지의 listing_counts 행)·count_links(link_count_drops 결과 중 이 단지)를 주면 건수 기반 블록 counts 를 붙인다.
     선택: listings(이 단지 active 매물), links(link_gone_to_trades 결과 중 이 단지), permit_links(key→trade),
           estimate(cases.estimate 결과), scores({gone id|date: score} 미리 계산한 점수), open_avg30.
     """
@@ -470,6 +551,15 @@ def complex_summary(cid: str, c: dict, events: list[dict], permits: list[dict], 
         n = sum(purp.values())
         pp = ", ".join(f"{k}" for k, _ in sorted(purp.items(), key=lambda kv: -kv[1]))
         timeline.append({"date": d, "type": "permit", "text": f"허가 {n}건 ({pp})", "grp": None})
+    for l in count_links or []:
+        if l["date"] >= d120:
+            txt = f"매물 {l['n']}건 감소(추정) {l['from']}→{l['to']}건"
+            u = l.get("units") or {}
+            if u.get("confirmed"):
+                txt += f" → 실거래 {u['confirmed']}건 확인"
+            elif u.get("relisted") == l["n"]:
+                txt += " → 다시 늘어남"
+            timeline.append({"date": l["date"], "type": "gone", "text": txt, "grp": None})
     for l in links:
         if l["date"] >= d120:
             txt = f"매물 내림(추정) {_fmt_price(l['price'])}"
@@ -503,11 +593,29 @@ def complex_summary(cid: str, c: dict, events: list[dict], permits: list[dict], 
         "region": region,
         "permits": permits_blk,
         "byGrp": by_grp,
+        "counts": _counts_block(counts_rows, count_links, scores, today_d),
         "timeline": timeline,
         "note": ("허가 내역에는 평형·가격이 없어 단지·지번 단위로만 맞춥니다. 매물 내림은 '허가 접수'가 아니라 추정이며, "
                  "실거래로 사후 확인된 비율(적중률)은 토허 탭에서 공개합니다. 접수 단계(새올)는 단지를 알 수 없습니다."),
         "today": today_s,
     }
+
+
+def _counts_block(counts_rows, count_links, scores, today_d: dt.date) -> dict | None:
+    """단지 페이지의 건수 기반 블록 {now, at, series, drop30, confirmed90, drops[…]}. 관측이 없으면 None."""
+    series = count_series(counts_rows, today_d)
+    if not series:
+        return None
+    d30 = (today_d - dt.timedelta(days=30)).isoformat()
+    d90 = (today_d - dt.timedelta(days=90)).isoformat()
+    cl = sorted(count_links or [], key=lambda l: l["date"], reverse=True)
+    drops = [{"date": l["date"], "prevDate": l["prevDate"], "n": l["n"], "from": l["from"], "to": l["to"],
+              "units": l["units"], "status": l["status"], "trade": l["trade"],
+              "score": (scores or {}).get(f"{l['id']}|{l['date']}")} for l in cl if l["date"] >= d90][:20]
+    return {"now": series[-1][1], "at": series[-1][0], "series": series,
+            "drop30": sum(l["n"] for l in cl if l["date"] >= d30),
+            "confirmed90": sum((l.get("units") or {}).get("confirmed", 0) for l in cl if l["date"] >= d90),
+            "drops": drops}
 
 
 def _fmt_price(p) -> str:
@@ -532,6 +640,7 @@ def accuracy_stats(links: list[dict], permit_links: dict[str, dict | None] | Non
     permit_links: link_permits_to_trades 결과. n 은 그 dict 크기(또는 permits_total).
     """
     cnt = {"confirmed": 0, "relisted": 0, "unconfirmed": 0, "pending": 0}
+    links = unit_links(links)          # 건수 기반 행은 내림 1건 단위로 센다
     for l in links or []:
         s = l.get("status") or "pending"
         cnt[s] = cnt.get(s, 0) + 1

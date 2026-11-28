@@ -526,6 +526,7 @@ function progressNote() {
   const msgs = [];
   if (pending.length) msgs.push(`실거래 이력 적재 중: ${pending.map(x => `${x.name} ${x.done}/${x.codes}`).join(', ')} — 적재가 끝난 지역부터 기준가가 나옵니다.`);
   if (fl.listings && /blocked/.test(fl.listings.status || '')) msgs.push(`네이버 매물 수집이 막혔어요 (${esc(fl.listings.status)}). 매물 목록은 마지막 성공분이며, 단지 페이지의 직접 판정은 계속 됩니다.`);
+  if (fl.counts && !(fl.listings && fl.listings.n)) msgs.push('네이버가 매물 목록(호가) 조회를 막고 있어 급매판정 목록은 비어 있어요. 단지별 매물 수 추이와 매물 내림 추정은 단지 페이지·토허 탭에서 볼 수 있고, 단지 페이지의 직접 판정은 계속 됩니다.');
   if (msgs.length) box.innerHTML = `<div class="warn">${msgs.join('<br>')}</div>`;
 }
 
@@ -773,6 +774,7 @@ function renderMe() {
         <div class="row"><span class="k">실거래 수집</span><span class="v">${fl.tradesRun ? `${esc(fl.tradesRun.at.slice(0, 16).replace('T', ' '))}<small>${fl.tradesRun.calls != null ? esc(fl.tradesRun.calls) + '회' : ''}${fl.tradesRun.stopped ? ' · ' + esc(String(fl.tradesRun.stopped)) : ''}${fl.tradesRun.status ? ' · ' + esc(fl.tradesRun.status) : ''}</small>` : '-'}</span></div>
         <div class="row"><span class="k">기준가 모델</span><span class="v">${fl.model ? `${esc(fl.model.at.slice(0, 16).replace('T', ' '))}<small>${Object.keys(fl.model.groups || {}).length}개 묶음</small>` : '-'}</span></div>
         <div class="row"><span class="k">네이버 단지 연결</span><span class="v">${fl.match ? `${esc(fl.match.status)}<small>${fl.match.matched}/${fl.match.dongs}동 · 남은 ${fl.match.pending}</small>` : '-'}</span></div>
+        <div class="row"><span class="k">네이버 매물 수 관측</span><span class="v">${fl.counts ? `${esc(fl.counts.status)}<small>${fl.counts.dongs}개 동 · 단지 ${fl.counts.complexes} · 남은 동 ${fl.counts.pending}/${fl.counts.totalDongs}</small>` : '-'}</span></div>
         <div class="row"><span class="k">네이버 매물 수집</span><span class="v">${fl.listings ? `${esc(fl.listings.status)}<small>${fl.listings.complexes}/${fl.listings.total}단지 · 새 ${fl.listings.new} · 사라짐 ${fl.listings.gone}${fl.listings.suspect ? ' · 의심 ' + fl.listings.suspect : ''} · ${esc(fl.listings.endpoint || '')}</small>` : '-'}</span></div>
         ${toheoStatusRows(fl.toheo, st.counts || {})}
       </div>
@@ -901,6 +903,7 @@ function toheoStatusRows(t, counts) {
 
 // ------------------------------------------------------------ 단지 페이지: 토지거래허가 파이프라인 패널 (c/<cid>.json 의 toheo 블록)
 function pipeStatus(s) { return ({ confirmed: '<span class="pill g">실거래 확인</span>', pending: '<span class="pill b">확인 대기</span>', relisted: '<span class="pill n">재등록</span>', unconfirmed: '<span class="pill w">미확인</span>' })[s] || `<span class="pill n">${esc(s || '-')}</span>`; }
+function countStatus(e) { const u = e.units || {}; const parts = []; if (u.confirmed) parts.push(`<span class="pill g">실거래 확인 ${u.confirmed}</span>`); if (u.pending) parts.push(`<span class="pill b">확인 대기 ${u.pending}</span>`); if (u.unconfirmed) parts.push(`<span class="pill w">미확인 ${u.unconfirmed}</span>`); if (u.relisted) parts.push(`<span class="pill n">다시 늘어남 ${u.relisted}</span>`); return parts.join(' ') + (e.trade ? ` 실거래 ${tradeTxt(e.trade)}` : ''); }
 const scoreHtml = (s) => s == null ? '' : `<span class="score ${s >= 0.6 ? 'hi' : ''}" title="매물 내림이 허가 접수일 가능성(추정)">${Math.round(s * 100)}%</span>`;
 function tradeTxt(t) { return t ? `${fmtDate(t.date)} ${fmtPrice(t.price)}${t.area ? ` ${fmtArea(t.area, null)}` : ''}${t.floor != null && t.floor !== '' ? ` ${t.floor}층` : ''}` : ''; }
 function complexToheoPanel(c) {
@@ -916,6 +919,11 @@ function complexToheoPanel(c) {
   // 최근 내림 추정 목록
   const gone = grps.flatMap(g => (by[g].gone30 || []).map(e => ({ ...e, grp: g }))).sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, 20);
   const goneHtml = gone.length ? `<div class="rows">${gone.map(e => `<div class="pipe"><span>${fmtDate(e.date)} <b>${fmtArea(null, +e.grp)}</b> ${e.dong ? esc(e.dong) + '동 ' : ''}${e.floor != null && e.floor !== '' ? e.floor + '층' : ''}</span><span>${scoreHtml(e.score)}</span><span class="pr">${fmtPrice(e.price)}</span><span class="st">${pipeStatus(e.status)}${e.trade ? ` 실거래 ${tradeTxt(e.trade)}` : ''}</span></div>`).join('')}</div>` : '';
+  // 매물 수 추이(건수 기반 내림 추정)
+  const cn = t.counts;
+  const cnHtml = cn ? `<div class="minis"><div class="mini"><div class="l">현재 매매 매물</div><div class="v">${fmtN(cn.now)}<small>건</small></div></div><div class="mini"><div class="l">30일 감소(추정)</div><div class="v">${fmtN(cn.drop30)}</div></div><div class="mini"><div class="l">확인된 거래</div><div class="v">${fmtN(cn.confirmed90)}<small>/90일</small></div></div><div class="mini"><div class="l">관측</div><div class="v">${(cn.series || []).length}<small>회</small></div></div></div>
+    <div class="note" style="margin-top:6px">${(cn.series || []).slice(-8).map(([d, n]) => `${fmtDate(d)} ${n}건`).join(' → ')}</div>
+    ${(cn.drops || []).length ? `<div class="rows" style="margin-top:6px">${cn.drops.map(e => `<div class="pipe"><span>${fmtDate(e.prevDate)}~${fmtDate(e.date)}</span><span>${scoreHtml(e.score)}</span><span class="pr">−${fmtN(e.n)}건</span><span class="st">매물 ${fmtN(e.from)}→${fmtN(e.to)}건 ${countStatus(e)}</span></div>`).join('')}</div>` : ''}` : '';
   // 허가 요약·매칭
   const permitSum = `<div class="minis"><div class="mini"><div class="l">7일 허가</div><div class="v">${fmtN(p.n7)}</div></div><div class="mini"><div class="l">30일</div><div class="v">${fmtN(p.n30)}</div></div><div class="mini"><div class="l">90일</div><div class="v">${fmtN(p.n90)}</div></div><div class="mini"><div class="l">누적</div><div class="v">${fmtN(p.total)}</div></div></div>`;
   const purposes = Object.entries(p.byPurpose || {}).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${esc(k)} ${v}`).join(' · ');
@@ -931,7 +939,8 @@ function complexToheoPanel(c) {
     <div class="note" style="margin-top:6px">${est && est.p50 != null ? `${kdw(base)} 접수하면 보통 ${kdw(addDays(base, Math.round(est.p50)))}, 늦으면 ${kdw(addDays(base, Math.round(est.p75 != null ? est.p75 : est.p90)))} 완료` : '완료 관측이 쌓이면 예상 승인일이 표시됩니다'} · <a href="#toheo-r-${esc(r.sgg)}">${esc(r.label || sggShort(r.sgg))} 상세</a></div>` : '<div class="note">이 지역은 새올 접수 현황 수집 대상이 아니에요.</div>';
   return `<div class="panel">${head}
     <div class="note" style="margin-bottom:8px">${zoneLine}</div>
-    <h3 style="margin:8px 0 4px">평형별 <small class="note">현재 매물 · 30일 내림(추정) · 확인된 거래</small></h3>${grpTbl}
+    ${cnHtml ? `<h3 style="margin:8px 0 6px">매물 수 추이 <small class="note">네이버 매매 매물 수 · ${fmtDate(cn.at)} 기준 · 감소분은 매물 내림 추정</small></h3>${cnHtml}` : ''}
+    ${grps.length || !cnHtml ? `<h3 style="margin:8px 0 4px">평형별 <small class="note">현재 매물 · 30일 내림(추정) · 확인된 거래</small></h3>${grpTbl}` : ''}
     ${goneHtml ? `<h3 style="margin:10px 0 4px">최근 매물 내림 <small class="note">추정 · 점수는 허가 접수일 가능성</small></h3>${goneHtml}` : ''}
     <h3 style="margin:10px 0 6px">허가 완료 <small class="note">${purposes || '용도 집계 없음'}</small></h3>${permitSum}
     ${(p.weekly || []).some(v => v) ? `<div style="margin-top:8px">${weeklyBars(p.weekly, base)}</div>` : ''}
@@ -996,18 +1005,22 @@ async function renderPipeline(box) {
   const sum = TH.sum, pipe = await thLoad('pipe', 'data/toheo/pipeline.json');
   const acc = (pipe && pipe.accuracy) || (sum && sum.accuracy) || null;
   const steps = `<div class="steps">
-    <div class="step"><div class="n">1 · 추정</div><div class="t">매물 내림</div><div class="s">네이버 매물이 사라짐 (단지·평형·호가 앎)</div></div>
+    <div class="step"><div class="n">1 · 추정</div><div class="t">매물 내림</div><div class="s">단지별 매물 수가 줄어듦 (평형·호가 모름)</div></div>
     <div class="step"><div class="n">2 · 새올</div><div class="t">구 접수·처리중</div><div class="s">구 단위 건수만 · 단지 알 수 없음</div></div>
     <div class="step"><div class="n">3 · 서울</div><div class="t">허가 완료</div><div class="s">지번 → 단지 매칭 (평형 없음)</div></div>
-    <div class="step"><div class="n">4 · 국토부</div><div class="t">실거래 확인</div><div class="s">평형·가격으로 사후 확인</div></div></div>`;
+    <div class="step"><div class="n">4 · 국토부</div><div class="t">실거래 확인</div><div class="s">같은 단지의 실거래로 사후 확인</div></div></div>`;
   const g = acc && acc.gone, pm = acc && acc.permits;
   const accHtml = acc ? `<div class="minis"><div class="mini"><div class="l">내림 → 실거래 적중</div><div class="v">${g && g.hitRate != null ? Math.round(g.hitRate * 100) + '<small>%</small>' : '–'}</div></div><div class="mini"><div class="l">확인 / 판정 종료</div><div class="v">${fmtN(g && g.confirmed)}<small>/${fmtN(g ? (g.confirmed || 0) + (g.unconfirmed || 0) + (g.relisted || 0) : null)}</small></div></div><div class="mini"><div class="l">허가 → 실거래</div><div class="v">${pm && pm.matchRate != null ? Math.round(pm.matchRate * 100) + '<small>%</small>' : '–'}</div></div><div class="mini"><div class="l">허가→거래 중위</div><div class="v">${pm && pm.medianDaysToTrade != null ? f1(pm.medianDaysToTrade) + '<small>일</small>' : '–'}</div></div></div>
-    <div class="note" style="margin-top:6px">내림 ${fmtN(g && g.n)}건 중 확인 ${fmtN(g && g.confirmed)} · 재등록 ${fmtN(g && g.relisted)} · 미확인 ${fmtN(g && g.unconfirmed)} · 대기 ${fmtN(g && g.pending)}. 적중률 = 확인 ÷ (확인+미확인+재등록), 대기 중인 건은 제외.</div>` : '<div class="note">적중률은 매물 내림 이벤트가 75일 이상 쌓이면 계산됩니다.</div>';
+    <div class="note" style="margin-top:6px">내림 ${fmtN(g && g.n)}건 중 확인 ${fmtN(g && g.confirmed)} · 재등록 ${fmtN(g && g.relisted)} · 미확인 ${fmtN(g && g.unconfirmed)} · 대기 ${fmtN(g && g.pending)}. 적중률 = 확인 ÷ (확인+미확인+재등록), 대기 중인 건은 제외. 매물 수 감소로 추정한 내림은 같은 단지에서 그 무렵 실거래가 있었는지만 봅니다(평형·가격 대조 없음). 거래가 잦은 대단지는 적중률이 높게 나옵니다.</div>` : '<div class="note">적중률은 매물 내림 이벤트가 75일 이상 쌓이면 계산됩니다.</div>';
   const recent = (pipe && pipe.recent) || [], conf = (pipe && pipe.confirmed) || [];
-  const row = (e) => `<a class="pipe link" href="${cxLink(e.cid)}" style="text-decoration:none"><span><b>${esc(e.name || e.cid)}</b> <span class="note">${esc(regLabel(e.sgg))} ${esc(e.umd || '')}</span></span><span>${scoreHtml(e.score)}</span><span class="pr">${fmtPrice(e.price)}</span><span class="st">${fmtDate(e.date)} · ${fmtArea(e.area, e.grp)} ${e.dong ? esc(e.dong) + '동 ' : ''}${e.floor != null && e.floor !== '' ? e.floor + '층' : ''} ${zoneBadge({ level: e.zoneLevel })} ${pipeStatus(e.status)}${e.trade ? ` 실거래 ${tradeTxt(e.trade)}` : ''}</span></a>`;
-  box.innerHTML = `<div class="panel"><h2>거래 파이프라인 <small>추정 → 접수 → 허가 → 실거래</small></h2>${steps}<div class="note">${COVERAGE_NOTE}</div></div>
+  const cntRow = (e) => `<a class="pipe link" href="${cxLink(e.cid)}" style="text-decoration:none"><span><b>${esc(e.name || e.cid)}</b> <span class="note">${esc(regLabel(e.sgg))} ${esc(e.umd || '')}</span></span><span>${scoreHtml(e.score)}</span><span class="pr">−${fmtN(e.n)}건</span><span class="st">${fmtDate(e.prevDate)}~${fmtDate(e.date)} · 매물 ${fmtN(e.from)}→${fmtN(e.to)}건 ${zoneBadge({ level: e.zoneLevel })} ${countStatus(e)}</span></a>`;
+  const row0 = (e) => `<a class="pipe link" href="${cxLink(e.cid)}" style="text-decoration:none"><span><b>${esc(e.name || e.cid)}</b> <span class="note">${esc(regLabel(e.sgg))} ${esc(e.umd || '')}</span></span><span>${scoreHtml(e.score)}</span><span class="pr">${fmtPrice(e.price)}</span><span class="st">${fmtDate(e.date)} · ${fmtArea(e.area, e.grp)} ${e.dong ? esc(e.dong) + '동 ' : ''}${e.floor != null && e.floor !== '' ? e.floor + '층' : ''} ${zoneBadge({ level: e.zoneLevel })} ${pipeStatus(e.status)}${e.trade ? ` 실거래 ${tradeTxt(e.trade)}` : ''}</span></a>`;
+  const row = (e) => e.src === 'count' ? cntRow(e) : row0(e);
+  const cinfo = (pipe && pipe.counts) || {};
+  const emptyMsg = !pipe ? '파이프라인 데이터(data/toheo/pipeline.json)가 아직 없어요.' : cinfo.complexes ? `단지 ${fmtN(cinfo.complexes)}곳의 매물 수를 기록하고 있어요 (최근 ${fmtDate(cinfo.lastDate)}). 같은 단지를 두 번 이상 관측한 뒤 건수가 줄면 여기에 나타납니다.` : '매물 수 관측이 아직 없어요. 집 PC 수집이 돌면 단지별 매물 수가 쌓입니다.';
+  box.innerHTML = `<div class="panel"><h2>거래 파이프라인 <small>추정 → 접수 → 허가 → 실거래</small></h2>${steps}<div class="note">${COVERAGE_NOTE} 네이버가 매물 목록(호가) 조회를 막고 있어, 매물 내림은 단지별 매물 수가 줄어든 것으로 추정합니다. 어떤 평형·가격의 매물인지는 알 수 없습니다.</div></div>
     <div class="panel"><h2>적중률 <small>추정이 얼마나 맞았나</small></h2>${accHtml}</div>
-    <div class="panel"><h2>최근 매물 내림 <small>추정 · 60일 · 토허구역 우선</small></h2>${recent.length ? `<div class="rows">${recent.slice(0, 60).map(row).join('')}</div>${recent.length > 60 ? '<div class="note">상위 60건만 표시</div>' : ''}` : `<div class="empty"><b>아직 내림 이벤트가 없어요</b>${pipe ? '매물 수집이 두 번 이상 돌아야 "사라진 매물"이 잡힙니다.' : '파이프라인 데이터(data/toheo/pipeline.json)가 아직 없어요.'}</div>`}</div>
+    <div class="panel"><h2>최근 매물 내림 <small>추정 · 60일 · 토허구역 우선</small></h2>${recent.length ? `<div class="rows">${recent.slice(0, 60).map(row).join('')}</div>${recent.length > 60 ? '<div class="note">상위 60건만 표시</div>' : ''}` : `<div class="empty"><b>아직 내림 이벤트가 없어요</b>${emptyMsg}</div>`}</div>
     <div class="panel"><h2>확인된 거래 <small>내림 → 실거래로 확인 ${conf.length}건</small></h2>${conf.length ? `<div class="rows">${conf.slice(0, 40).map(row).join('')}</div>` : '<div class="note">아직 실거래로 확인된 내림이 없어요. 계약 후 신고(30일)까지 시차가 있습니다.</div>'}</div>`;
 }
 

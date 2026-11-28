@@ -279,6 +279,8 @@ class NaverClient:
                 "approveYmd": str(pick(d, f.get("approveYmd", [])) or ""),
                 "lat": pick(d, f.get("lat", [])), "lng": pick(d, f.get("lng", [])),
                 "type": typ,
+                # 단지별 매매 매물 수(없으면 None). 매물 목록(호가) 수집이 막혀 있어 건수 추이만 기록한다(listing_counts.csv)
+                "dealCnt": _count(pick(d, f.get("dealCnt", []))),
             })
         return out
 
@@ -439,6 +441,15 @@ def name_key(s: str) -> str:
 def _tokens(s: str) -> set[str]:
     t = name_key(s)
     return {t[i:i + 2] for i in range(len(t) - 1)} if len(t) > 1 else {t}
+
+
+def _count(v) -> int | None:
+    """건수 필드 → 0 이상의 정수, 없거나 숫자가 아니면 None('0건' 과 '모름' 을 구분)."""
+    try:
+        n = int(str(v).replace(",", "").strip())
+    except (TypeError, ValueError):
+        return None
+    return n if n >= 0 else None
 
 
 def match_score(mc: dict, nc: dict) -> float:

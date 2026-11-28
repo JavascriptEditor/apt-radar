@@ -236,7 +236,15 @@ def export_site(engine: Engine, out_dir: str | os.PathLike, site_url: str | None
         links_by_cid[l["cid"]].append(l)
     permit_links = pl.link_permits_to_trades(th.permits, trades_by_cid, today_d)
     n_permits_ok = sum(1 for p in th.permits.values() if (p.get("job_gbn") or "허가") == "허가" and p.get("cid"))
-    accuracy = pl.accuracy_stats(links, permit_links, permits_total=n_permits_ok)
+    # 건수 기반 내림 추정(매물 목록을 못 받는 동안의 대체 신호): 단지별 매매 매물 수가 줄어든 구간
+    counts_by_cid: dict[str, list[dict]] = defaultdict(list)
+    for r in store.read_listing_counts():
+        counts_by_cid[r["cid"]].append(r)
+    count_links = pl.link_count_drops([r for rs in counts_by_cid.values() for r in rs], trades_by_cid, today_d)
+    count_links_by_cid: dict[str, list[dict]] = defaultdict(list)
+    for l in count_links:
+        count_links_by_cid[l["cid"]].append(l)
+    accuracy = pl.accuracy_stats(links + count_links, permit_links, permits_total=n_permits_ok)
 
     # ---- 매물 판정 (사이트에는 active 만, gone 행은 점수 계산용으로만)
     all_rows_raw = store.read_listings()
@@ -291,6 +299,20 @@ def export_site(engine: Engine, out_dir: str | os.PathLike, site_url: str | None
             link_rows.append({**l, "name": c.get("name", ""), "sgg": c.get("sgg", ""), "umd": c.get("umd", ""), "score": sc,
                               "zoneLevel": zone["level"]})
 
+    for cid, ls_ in count_links_by_cid.items():
+        c = engine.complexes.get(cid)
+        if not c:
+            continue
+        zone = th.zone(c.get("sgg", ""), c.get("umd"))
+        tsgg = th.tsgg(c.get("sgg", ""), c.get("umd"))
+        st = th.stats(tsgg)
+        for l in ls_:
+            sc = pl.estimate_score({"date": l["date"]}, {"zone": zone, "open": st["open"] if st else None,
+                                                         "openAvg30": th.open_avg30(tsgg)})
+            scores[f"{l['id']}|{l['date']}"] = sc
+            link_rows.append({**l, "name": c.get("name", ""), "sgg": c.get("sgg", ""), "umd": c.get("umd", ""), "score": sc,
+                              "zoneLevel": zone["level"]})
+
     # ---- 단지 페이지
     index_rows = []
     by_sgg_listings: dict[str, list[dict]] = defaultdict(list)
@@ -313,7 +335,7 @@ def export_site(engine: Engine, out_dir: str | os.PathLike, site_url: str | None
         index_rows.append([cid, c.get("name", ""), c.get("sgg", ""), c.get("umd", ""), c.get("buildYear", ""),
                            _int(c.get("households")), c.get("naverId", ""), bool(cm), len(ls), best, c.get("lastYm", ""),
                            fairs, n_tr])
-        has_toheo = bool(permits_by_cid.get(cid) or events_by_cid.get(cid))
+        has_toheo = bool(permits_by_cid.get(cid) or events_by_cid.get(cid) or counts_by_cid.get(cid))
         if not cm and not ls and not has_toheo:
             continue
         zone = th.zone(c.get("sgg", ""), c.get("umd"))
@@ -323,7 +345,8 @@ def export_site(engine: Engine, out_dir: str | os.PathLike, site_url: str | None
                                     listings=listings_by_cid.get(cid, []), links=links_by_cid.get(cid, []),
                                     permit_links=permit_links, region_label=tr.label(tsgg, engine.live),
                                     estimate=th.estimate(tsgg), region_sgg=tsgg if (th.stats(tsgg) or tsgg in tr.ALL_SGGS) else "",
-                                    scores=scores, open_avg30=th.open_avg30(tsgg))
+                                    scores=scores, open_avg30=th.open_avg30(tsgg),
+                                    counts_rows=counts_by_cid.get(cid), count_links=count_links_by_cid.get(cid))
         complex_toheo[cid] = tblock
         page = {
             "cid": cid, "name": c.get("name", ""), "sgg": c.get("sgg", ""), "sggName": regions.short_name(c.get("sgg", ""), engine.live),
@@ -553,8 +576,8 @@ def _export_toheo(engine: Engine, th: ToheoData, data: Path, gen: str, today_d: 
         cx_items.append({"cid": x["cid"], "name": x["name"], "sgg": x["sgg"], "umd": x["umd"], "matched": x["matched"],
                          "n7": pc["n7"], "n30": pc["n30"], "n90": pc["n90"], "total": pc["total"], "first": pc["first"],
                          "last": pc["last"], "weekly": pc["weekly"], "purposes": dict(x["purposes"]),
-                         "goneEst30": sum(1 for l in gl if l["date"] >= d30),
-                         "confirmed90": sum(1 for l in gl if l["status"] == "confirmed" and l["date"] >= d90),
+                         "goneEst30": sum(_units(l) for l in gl if l["date"] >= d30),
+                         "confirmed90": sum(_units(l, "confirmed") for l in gl if l["date"] >= d90),
                          "zoneLevel": zone["level"]})
     cx_items.sort(key=lambda x: (-x["n30"], -x["n90"], -x["total"], x["name"]))
     top_by_sgg: dict[str, list[dict]] = defaultdict(list)
@@ -582,8 +605,8 @@ def _export_toheo(engine: Engine, th: ToheoData, data: Path, gen: str, today_d: 
     totals = {"open": 0, "received7": 0, "received30": 0, "receivedPrev30": 0, "completed30": 0,
               "permits7": sum(1 for p in permits_ok if p["hndl_ymd"] >= d7),
               "permits30": sum(1 for p in permits_ok if p["hndl_ymd"] >= d30),
-              "goneEst30": sum(1 for l in link_rows if l["date"] >= d30),
-              "confirmed30": sum(1 for l in link_rows if l["status"] == "confirmed" and l["date"] >= d30)}
+              "goneEst30": sum(_units(l) for l in link_rows if l["date"] >= d30),
+              "confirmed30": sum(_units(l, "confirmed") for l in link_rows if l["date"] >= d30)}
     sites_log = th.tlog.get("sites", {}) if th.tlog else {}
     for sgg in region_ids:
         st = th.stats(sgg) or cs.stats_for([], today_d)
@@ -630,17 +653,29 @@ def _export_toheo(engine: Engine, th: ToheoData, data: Path, gen: str, today_d: 
     confirmed = sorted((l for l in link_rows if l["status"] == "confirmed"),
                        key=lambda l: (l["trade"] or {}).get("date", ""), reverse=True)
     fields = ("id", "cid", "name", "sgg", "umd", "grp", "area", "dong", "floor", "price", "date", "score", "status", "trade",
-              "zoneLevel", "daysToTrade")
-    pick = lambda l: {k: l.get(k) for k in fields}  # noqa: E731
-    _dump(tdir / "pipeline.json", {"generatedAt": gen, "today": today, "accuracy": accuracy,
+              "zoneLevel", "daysToTrade", "src", "n", "from", "to", "prevDate", "units")
+    pick = lambda l: {k: l.get(k) for k in fields if l.get(k) is not None or k not in ("src", "n", "from", "to", "prevDate", "units")}  # noqa: E731
+    clog = engine.fetch_log.get("counts") or {}
+    counts_all = engine.store.read_listing_counts()
+    counts_info = {"at": clog.get("at"), "status": clog.get("status"), "complexes": len({r["cid"] for r in counts_all}),
+                   "lastDate": max((r["date"] for r in counts_all), default=None)}
+    _dump(tdir / "pipeline.json", {"generatedAt": gen, "today": today, "accuracy": accuracy, "counts": counts_info,
                                    "recent": [pick(l) for l in recent[:200]], "confirmed": [pick(l) for l in confirmed[:100]],
-                                   "rules": {"goneWindowDays": [-pl.GONE_BEFORE_DAYS, pl.GONE_AFTER_DAYS],
+                                   "rules": {"countMaxGapDays": pl.COUNT_MAX_GAP_DAYS,
+                                             "goneWindowDays": [-pl.GONE_BEFORE_DAYS, pl.GONE_AFTER_DAYS],
                                              "priceRatio": [pl.PRICE_LO, pl.PRICE_HI], "pendingDays": pl.GONE_PENDING_DAYS,
                                              "relistDays": pl.RELIST_DAYS, "permitWindowDays": pl.PERMIT_AFTER_DAYS}})
     _dump(tdir / "daily.json", daily)
     _dump(tdir / "open_cases.json", open_cases)
     _dump(tdir / "recent_done.json", recent_done)
     return {"regions": regions_out, "feed_entries": feed_entries}
+
+
+def _units(l: dict, status: str | None = None) -> int:
+    """내림 행이 뜻하는 건수. 매물 단위 행은 1건, 건수 기반 행(src='count')은 n 건(status 를 주면 그 상태인 건수)."""
+    if l.get("src") == "count":
+        return (l.get("units") or {}).get(status, 0) if status else int(l.get("n") or 0)
+    return 1 if status is None or l.get("status") == status else 0
 
 
 def fmt_price(p) -> str:

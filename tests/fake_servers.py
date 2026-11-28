@@ -157,6 +157,8 @@ class Handler(BaseHTTPRequestHandler):
     articles_override: dict[str, list | None] = {}
     # 테스트에서 특정 단지의 매물 요청을 실패시킴: {naverId: "500" | "html" | "json_error"}
     fail_articles: dict[str, str] = {}
+    # 단지 목록 응답의 매매 매물 수(dealCnt): {naverId: n}. 키가 없으면 7
+    deal_counts: dict[str, int] = {}
     FIN_PAGE = 10  # fin.land 가짜 페이지 크기
 
     def log_message(self, *a):  # 조용히
@@ -251,7 +253,8 @@ class Handler(BaseHTTPRequestHandler):
             cortar = q.get("cortarNo", "")
             res = [{"hscpNo": c["naverId"], "hscpNm": c["name"] + ("아파트" if c["name"] == "은마" else ""),
                     "cortarNo": cortar, "detailAddress": c["jibun"], "totHsehCnt": c["hh"], "totDongCnt": len(c["dongs"]),
-                    "highFloor": c["top"], "useAprvYmd": f"{c['build']}0301", "lat": 37.49, "lng": 127.06, "hscpTypeCd": "A01"}
+                    "highFloor": c["top"], "useAprvYmd": f"{c['build']}0301", "lat": 37.49, "lng": 127.06, "hscpTypeCd": "A01",
+                    "dealCnt": Handler.deal_counts.get(c["naverId"], 7)}
                    for c in WORLD if c["sgg"] + c["umdCd"] == cortar]
             return self._send(json.dumps({"result": res}, ensure_ascii=False).encode(), "application/json")
         if "getComplexArticleList" in u.path:

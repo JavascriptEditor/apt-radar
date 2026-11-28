@@ -4,6 +4,7 @@ python -m collector run        실거래 재조회·적재 (+ 월 1회 신설 �
 python -m collector listings   네이버 매물 수집
 python -m collector model      기준가 모델만 다시 적합 (--partial: 적재 중인 묶음도)
 python -m collector match      네이버 단지 매칭만
+python -m collector counts     단지별 매매 매물 수 관측 (건수 감소 → 매물 내림 추정)
 python -m collector export     사이트 데이터 생성 (--out site, --notify: 텔레그램 요약 알림)
 python -m collector toheo      토허제 수집: 새올 접수 현황 + 서울 허가 내역 (--deep --no-permits --discover)
 python -m collector scan       신설 구 코드 탐색 (--force)
@@ -92,6 +93,9 @@ def main(argv=None) -> int:
     s = sub.add_parser("match")
     s.add_argument("--max-dongs", type=int, default=env_int("MATCH_MAX_DONGS", 400))
     s.add_argument("--retry-unmatched", action="store_true", help="연결 안 된 단지가 있는 동을 지금 다시 조회")
+    s = sub.add_parser("counts")
+    s.add_argument("--max-dongs", type=int, default=env_int("COUNT_MAX_DONGS", 50),
+                   help="실행당 조회할 동 수(동 하나에 네이버 호출 1회)")
     s = sub.add_parser("export")
     s.add_argument("--out", default="site")
     s.add_argument("--notify", action="store_true", help="export 뒤 텔레그램 요약 알림(collector.notify.send_digest)")
@@ -129,6 +133,15 @@ def main(argv=None) -> int:
             res = eng.run_listings(max_calls=args.max_calls, max_sec=args.max_sec, min_interval_min=args.min_interval)
         except Exception as e:  # noqa: BLE001 — 상태를 남기고 비정상 종료 코드로 알린다
             record_error(eng, "listings", e)
+            return 2
+        print(json.dumps(res, ensure_ascii=False))
+        return 0
+    if args.cmd == "counts":
+        eng = build(args, need_naver=True)
+        try:
+            res = eng.run_counts(max_dongs=args.max_dongs)
+        except Exception as e:  # noqa: BLE001 — 상태를 남기고 비정상 종료 코드로 알린다
+            record_error(eng, "counts", e)
             return 2
         print(json.dumps(res, ensure_ascii=False))
         return 0

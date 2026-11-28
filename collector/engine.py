@@ -31,6 +31,8 @@ GONE_KEEP_DAYS = 120      # gone 매물 행을 listings.csv 에 남겨 두는 �
 EVENT_KEEP_DAYS = 400     # listing_events.csv 보관 기간
 SUSPECT_MIN_PREV = 5      # 직전 listingsN 이 이 이상인데 0건이면 의심 응답
 SUSPECT_ACCEPT_AFTER = 3  # 의심 응답이 연속 n회 이어지면 실제 0건으로 받아들임(영구 정체 방지)
+COUNT_KEEP_DAYS = 400     # listing_counts.csv 보관 기간
+COUNT_ZONE_WEIGHT = 3     # 건수 관측 순서: 토허구역 동은 비규제 동보다 이 배수만큼 자주 돈다
 STALE_ACTIVE_DAYS = 14    # 수집 대상에서 빠진 단지(지역 필터 축소 등)의 active 매물: lastSeen 이 이보다 오래되면 이벤트 없이 gone
 
 
@@ -428,23 +430,10 @@ class Engine:
         done, matched, changed, status = 0, 0, 0, "ok"
         failed_dongs = 0
         empty_dongs, diag = 0, []   # 네이버가 단지 0건을 돌려준 동 수와 그 진단(응답 구조 확인용)
+        count_rows: list[dict] = []
         try:
             for (sgg, umd_cd), cxs in todo[:max_dongs]:
-                cands = {sgg + umd_cd}
-                grp = self.group_of(sgg)
-                for code in self.codes:
-                    if self.group_of(code) == grp:
-                        cands.add(code + umd_cd)
-                for code in self.live:
-                    if self.live[code].get("group") == grp:
-                        cands.add(code + umd_cd)
-                naver_cx: list[dict] = []
-                fetched_ok = False
-                for cortar in sorted(cands):
-                    naver_cx = self.naver.complexes(cortar)
-                    fetched_ok = fetched_ok or getattr(self.naver, "last_ok", True)
-                    if naver_cx:
-                        break
+                naver_cx, fetched_ok, cands = self._fetch_dong(sgg, umd_cd)
                 if not naver_cx:
                     empty_dongs += 1
                     if len(diag) < 3:
@@ -473,6 +462,11 @@ class Engine:
                                   "households": n.get("households") or "", "highFloor": n.get("highFloor") or "",
                                   "lat": n.get("lat") or "", "lng": n.get("lng") or "", "matchScore": score})
                         matched += 1
+                # 같은 응답에 단지별 매매 매물 수가 들어 있다 — 추가 호출 없이 건수 관측으로 남긴다
+                rows_now = self._count_rows(cxs, naver_cx, today)
+                if rows_now:
+                    self.progress.setdefault("countsDongAt", {})[sgg + umd_cd] = today
+                count_rows += rows_now
                 done += 1
                 if done % 50 == 0:
                     self._save()
@@ -488,12 +482,104 @@ class Engine:
         self.fetch_log["match"] = {"at": now_kst().isoformat(timespec="seconds"), "dongs": done, "matched": matched,
                                    "changed": changed, "status": status, "calls": self.naver.calls,
                                    "pending": max(0, len(todo) - done), "emptyDongs": empty_dongs, "failedDongs": failed_dongs,
-                                   "log": self.naver.log[-30:]}
+                                   "counted": len(count_rows), "log": self.naver.log[-30:]}
+        self.store.upsert_listing_counts(count_rows, keep_since=date_add(today, -COUNT_KEEP_DAYS))
         if diag:
             self.store.write_json("naver_probe.json", {"at": self.fetch_log["match"]["at"], "kind": "match",
                                                        "status": status, "diag": diag})
         self._save()
         return self.fetch_log["match"]
+
+    # ------------------------------------------------------------ counts
+    def _fetch_dong(self, sgg: str, umd_cd: str, own_first: bool = False) -> tuple[list[dict], bool, list[str]]:
+        """법정동 하나의 네이버 단지 목록 → (단지 목록, 요청 성공 여부, 시도한 cortar 후보).
+        구가 나뉘거나 합쳐진 지역은 같은 묶음의 다른 구 코드로도 찾아본다. own_first 면 자기 코드부터."""
+        own = sgg + umd_cd
+        cands = {own}
+        grp = self.group_of(sgg)
+        for code in self.codes:
+            if self.group_of(code) == grp:
+                cands.add(code + umd_cd)
+        for code in self.live:
+            if self.live[code].get("group") == grp:
+                cands.add(code + umd_cd)
+        order = [own] + sorted(cands - {own}) if own_first else sorted(cands)
+        naver_cx: list[dict] = []
+        fetched_ok = False
+        for cortar in order:
+            naver_cx = self.naver.complexes(cortar)
+            fetched_ok = fetched_ok or getattr(self.naver, "last_ok", True)
+            if naver_cx:
+                break
+        return naver_cx, fetched_ok, sorted(cands)
+
+    @staticmethod
+    def _count_rows(cxs: list[dict], naver_cx: list[dict], today: str) -> list[dict]:
+        """연결된 단지(naverId 있음) 중 이번 응답에 건수가 실린 것 → listing_counts 행."""
+        deal = {str(n["naverId"]): n.get("dealCnt") for n in naver_cx}
+        rows = []
+        for c in cxs:
+            nid = str(c.get("naverId") or "")
+            if nid and deal.get(nid) is not None:
+                rows.append({"date": today, "cid": c["cid"], "naverId": nid, "deal": int(deal[nid])})
+        return rows
+
+    def run_counts(self, max_dongs: int = 50) -> dict:
+        """단지별 매매 매물 수 관측(listing_counts.csv). 매물 목록(호가)은 네이버가 막아 수집하지 못하므로,
+        단지 목록 응답의 dealCnt 만 기록해 '건수가 줄어든 단지' 를 매물 내림 추정에 쓴다(pipeline.link_count_drops).
+
+        동 하나에 호출 1회. 실행당 max_dongs 개 동을, 오래 못 본 동부터 돈다(토허구역 동은 COUNT_ZONE_WEIGHT 배 우선).
+        오늘 이미 관측한 동은 건너뛴다."""
+        from . import pipeline as pl                 # 지연 import: pipeline·toheo 가 engine 을 import 한다(순환 방지)
+        from .toheo import designations as dz
+        assert self.naver
+        today = today_str()
+        today_d = dt.date.fromisoformat(today)
+        by_dong: dict[tuple[str, str], list[dict]] = defaultdict(list)
+        for c in self.complexes.values():
+            if c.get("naverId") and c.get("umdCd") and c["sgg"] in self.codes:
+                by_dong[(c["sgg"], c["umdCd"])].append(c)
+        # 동별 마지막 조회일(요청이 성공한 날). 단지 단위로 보면 응답에 안 나오는 단지 하나가 그 동을 영영 맨 앞에 세운다
+        seen_at: dict[str, str] = self.progress.setdefault("countsDongAt", {})
+        try:
+            dz_items = dz.with_status(dz.load(), today)
+        except (OSError, ValueError):
+            dz_items = []
+
+        def priority(key: tuple[str, str], cxs: list[dict]) -> int:
+            seen = seen_at.get(key[0] + key[1], "")
+            age = (today_d - dt.date.fromisoformat(seen)).days if seen else 10000
+            zone = pl.zone_of(cxs[0]["sgg"], cxs[0].get("umd"), dz_items, today) if dz_items else {"level": 0}
+            return age * (COUNT_ZONE_WEIGHT if zone.get("level") else 1)
+
+        todo = [(priority(k, v), k, v) for k, v in by_dong.items()]
+        todo = [t for t in todo if t[0] > 0]
+        todo.sort(key=lambda t: (-t[0], -len(t[2]), t[1]))
+        done, failed_dongs, status = 0, 0, "ok"
+        rows: list[dict] = []
+        try:
+            for _, (sgg, umd_cd), cxs in todo[:max_dongs]:
+                naver_cx, fetched_ok, _ = self._fetch_dong(sgg, umd_cd, own_first=True)
+                done += 1
+                if not fetched_ok:
+                    failed_dongs += 1
+                    continue
+                seen_at[sgg + umd_cd] = today
+                rows += self._count_rows(cxs, naver_cx, today)
+        except Blocked as e:
+            status = f"blocked: {e}"
+            self.log(f"[counts] {status}")
+        except CallBudgetExceeded as e:
+            status = "partial"
+            self.log(f"[counts] 호출 상한: {e}")
+        if status == "ok" and done and not rows and failed_dongs < done:
+            status = "empty: 응답에 매물 수(dealCnt)가 없음 (config/naver.json 의 complex_fields.dealCnt 확인)"
+        total_rows = self.store.upsert_listing_counts(rows, keep_since=date_add(today, -COUNT_KEEP_DAYS))
+        self.fetch_log["counts"] = {"at": now_kst().isoformat(timespec="seconds"), "dongs": done, "complexes": len(rows),
+                                    "status": status, "calls": self.naver.calls, "pending": max(0, len(todo) - done),
+                                    "totalDongs": len(by_dong), "failedDongs": failed_dongs, "rows": total_rows}
+        self._save()
+        return self.fetch_log["counts"]
 
     # ---------------------------------------------------------- listings
     def run_listings(self, max_calls: int = 1500, max_sec: int = 2400, min_interval_min: int = 0) -> dict:

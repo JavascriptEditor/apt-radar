@@ -55,7 +55,8 @@
     "approveYmd": ["useAprvYmd", "useApproveYmd", "useAprYmd"],
     "lat": ["lat", "latitude"],
     "lng": ["lng", "longitude"],
-    "type": ["hscpTypeCd", "realEstateTypeCode", "hscpTypeNm"]
+    "type": ["hscpTypeCd", "realEstateTypeCode", "hscpTypeNm"],
+    "dealCnt": ["dealCnt", "dealCount"]
   },
   "article_fields": {
     "id": ["atclNo", "articleNo", "articleNumber", "representativeArticleInfo.articleNumber"],

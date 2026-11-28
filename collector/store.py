@@ -6,6 +6,7 @@ data/
   listings.csv                  매물 스냅샷 (소프트 삭제: status active/gone, miss 카운터)
   listing_events.csv            매물 이벤트(new/price/gone/relist) 날짜 오름차순 append
   listing_stats.csv             일별 등급 분포 (트렌드)
+  listing_counts.csv            단지별 매매 매물 수 관측(date, cid, naverId, deal) — 건수 감소로 매물 내림 추정
   model/<묶음코드>.json.gz       기준가 모델
   progress.json                 적재 진행·호출 수
   regions_live.json             자동 탐색한 신설 구 코드
@@ -33,6 +34,7 @@ LISTING_FIELDS = ["atclNo", "cid", "naverId", "dongRaw", "dong", "floor", "top",
 LISTING_DEFAULTS = {"status": "active", "goneAt": "", "miss": "0", "priceFirst": "", "priceChanges": "0"}
 EVENT_FIELDS = ["date", "atclNo", "cid", "grp", "area", "dong", "floor", "event", "price", "prevPrice"]
 EVENT_TYPES = ("new", "price", "gone", "relist")
+COUNT_FIELDS = ["date", "cid", "naverId", "deal"]
 
 
 class Store:
@@ -227,6 +229,44 @@ class Store:
             return []
         with open(p, encoding="utf-8", newline="") as f:
             return list(csv.DictReader(f))
+
+    # ------------------------------------------------------ listing counts
+    def read_listing_counts(self, since: str | None = None) -> list[dict]:
+        """listing_counts.csv 전체(또는 date >= since). (cid, date) 오름차순. deal 은 int."""
+        p = self.root / "listing_counts.csv"
+        if not p.exists():
+            return []
+        out = []
+        with open(p, encoding="utf-8", newline="") as f:
+            for r in csv.DictReader(f):
+                try:
+                    r["deal"] = int(r.get("deal") or "")
+                except ValueError:
+                    continue
+                if not r.get("cid") or not r.get("date") or (since and r["date"] < since):
+                    continue
+                out.append(r)
+        out.sort(key=lambda r: (r["cid"], r["date"]))
+        return out
+
+    def upsert_listing_counts(self, rows: list[dict], keep_since: str | None = None) -> int:
+        """관측 행을 합친다. 같은 (cid, date) 는 새 값으로 덮어쓴다(하루 여러 번 실행). keep_since 이전 날짜는 버린다.
+        전체 행 수를 돌려준다."""
+        if not rows and not keep_since:
+            return 0
+        merged = {(r["cid"], r["date"]): r for r in self.read_listing_counts()}
+        for r in rows:
+            if r.get("cid") and r.get("date") and r.get("deal") is not None:
+                merged[(r["cid"], r["date"])] = r
+        keep = [merged[k] for k in sorted(merged) if not keep_since or k[1] >= keep_since]
+        p = self.root / "listing_counts.csv"
+        tmp = p.with_suffix(".tmp")
+        with open(tmp, "w", encoding="utf-8", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=COUNT_FIELDS, extrasaction="ignore")
+            w.writeheader()
+            w.writerows(keep)
+        os.replace(tmp, p)
+        return len(keep)
 
     # --------------------------------------------------------------- model
     def read_model(self, group: str) -> dict | None:

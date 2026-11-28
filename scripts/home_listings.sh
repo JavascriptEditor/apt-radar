@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# 집 PC(macOS·Linux)에서 네이버 매물을 수집해 data 브랜치에 올리는 한 방 스크립트.
+# 집 PC(macOS·Linux)에서 네이버 단지 연결·단지별 매물 수 관측(+토허)을 돌려 data 브랜치에 올리는 한 방 스크립트.
 #
-#   저장소 clone(없으면) → main 갱신 → data 브랜치 worktree → .venv + pip install → python -m collector listings
+#   저장소 clone(없으면) → main 갱신 → data 브랜치 worktree → .venv + pip install → collector match · counts (· toheo)
 #   → data 브랜치 커밋·푸시.  export·Pages 배포는 다음 GitHub Actions 실행이 처리합니다(또는 Actions 에서 mode=export 수동 실행).
 #
 # 사용법
@@ -13,15 +13,19 @@
 #   REPO_URL         저장소 주소(처음 clone 할 때만 필요). 푸시하려면 로그인된 git(gh auth login / credential helper / SSH)
 #   APT_RADAR_DIR    저장소를 둘 폴더 (기본 ~/apt-radar; 저장소 안에서 실행하면 그 저장소)
 #   REGION_FILTER    수집 지역 (예: 서울 / 서울,경기 / 11680,41135). 비우면 수도권 전체
-#   NAVER_MAX_CALLS  실행당 호출 상한 (기본 1500, 약 20분)
+#   HOME_MATCH_DONGS 실행당 단지 연결 동 수 (기본 30, 0=생략)
+#   HOME_COUNT_DONGS 실행당 매물 수 관측 동 수 (기본 50, 0=생략). 둘의 합이 네이버 한도(약 90회)를 넘지 않게
+#   HOME_TOHEO=1     토허(새올·서울 허가) 수집도 같이 (deep=깊은 수집)
+#   HOME_LISTINGS=1  매물 목록(호가) 수집도 시도 — 네이버가 막고 있어 기본은 끔
+#   NAVER_MAX_CALLS  (HOME_LISTINGS=1 일 때) 실행당 호출 상한 (기본 1500)
 #   NAVER_MAX_SEC    실행당 시간 상한(초, 기본 2400)
 #   NAVER_DELAY_SEC  요청 간격(초, 기본 0.7). 더 줄이지 마세요
 #   NAVER_LAND_TOKEN (선택) 브라우저에서 복사한 Bearer 토큰
 #   PYTHON           파이썬 실행 파일 (기본 python3)
 #   NO_PUSH=1        커밋만 하고 푸시하지 않음(확인용)
 #
-# 주기 실행 예 (crontab -e):  40 9,13,17,21 * * *  /bin/bash $HOME/apt-radar/scripts/home_listings.sh >> $HOME/apt-radar.log 2>&1
-#   macOS 는 launchd 로도 가능. 네이버 비공식 API 는 약관상 허용되지 않으니 하루 4회 이상으로 늘리지 마세요.
+# 주기 실행 예 (crontab -e):  0 7 * * *  HOME_TOHEO=1 /bin/bash $HOME/apt-radar/scripts/home_listings.sh >> $HOME/apt-radar.log 2>&1
+#   macOS 는 launchd 로도 가능(덮개를 닫아 두려면 pmset repeat wakeorpoweron 으로 깨우기 예약). 하루 1회를 넘기지 마세요.
 set -euo pipefail
 
 PYTHON="${PYTHON:-python3}"
@@ -94,31 +98,47 @@ if [ ! -x .venv/bin/python ]; then
 fi
 .venv/bin/python -m pip install -q --disable-pip-version-check -r requirements.txt
 
-# ---- 4b) 단지 연결(네이버 단지번호). 연결 안 된 동을 실행당 HOME_MATCH_DONGS(기본 60)개씩 — 네이버가 약 90회에서
+# ---- 4b) 단지 연결(네이버 단지번호). 연결 안 된 동을 실행당 HOME_MATCH_DONGS(기본 30)개씩 — 네이버가 약 90회에서
 # 요청을 제한하므로 조금씩 나눠 채운다. 0 이면 생략. 막히면(blocked) 그대로 두고 다음 실행에서 이어간다.
-if [ "${HOME_MATCH_DONGS:-60}" != "0" ]; then
+MATCH_BLOCKED=0
+if [ "${HOME_MATCH_DONGS:-30}" != "0" ]; then
   set +e
-  MOUT="$(.venv/bin/python -m collector match --max-dongs "${HOME_MATCH_DONGS:-60}" 2>&1 | tail -n 1 | cut -c1-200)"
+  MOUT="$(.venv/bin/python -m collector match --max-dongs "${HOME_MATCH_DONGS:-30}" 2>&1 | tail -n 1 | cut -c1-200)"
   set -e
   log "단지 연결: $MOUT"
+  case "$MOUT" in *'"status": "blocked'*) MATCH_BLOCKED=1 ;; esac
 fi
 
-# ---- 5) 매물 수집 (파이썬 종료코드를 보존: 예외로 죽으면 커밋하지 않고 exit 4)
-log "네이버 매물 수집 시작 (REGION_FILTER=${REGION_FILTER:-전체}, NAVER_MAX_CALLS=${NAVER_MAX_CALLS:-1500})"
-set +e
-OUT="$(.venv/bin/python -m collector listings)"
-RC=$?
-set -e
-RESULT="$(printf '%s\n' "$OUT" | tail -n 1)"
-log "결과: $RESULT"
-if [ "$RC" -ne 0 ]; then
-  log "매물 수집이 비정상 종료했습니다(exit $RC). 커밋하지 않습니다 — 위 오류 메시지를 확인하세요."
-  exit 4
+# ---- 4c) 단지별 매매 매물 수 관측(건수 기반 매물 내림 추정). 동 하나에 호출 1회, 실행당 HOME_COUNT_DONGS(기본 50)개 동.
+# 단지 연결과 같은 호출 한도(약 90회)를 나눠 쓰므로 둘의 합을 80 안팎으로 둔다. 연결 단계에서 막혔으면 건너뛴다.
+if [ "${HOME_COUNT_DONGS:-50}" != "0" ] && [ "$MATCH_BLOCKED" = "0" ]; then
+  set +e
+  COUT="$(.venv/bin/python -m collector counts --max-dongs "${HOME_COUNT_DONGS:-50}" 2>&1 | tail -n 1 | cut -c1-300)"
+  set -e
+  log "매물 수 관측: $COUT"
+elif [ "$MATCH_BLOCKED" = "1" ]; then
+  log "매물 수 관측: 네이버 요청 제한 중이라 건너뜀"
 fi
-case "$RESULT" in
-  *'"status": "blocked'*) log "네이버가 요청을 막았습니다. 몇 시간 뒤 다시 시도하거나 NAVER_DELAY_SEC 를 늘리세요." ;;
-  *'"status": "skipped'*) log "직전 수집이 최근이라 건너뛰었습니다 (LISTINGS_MIN_INTERVAL_MIN)." ;;
-esac
+
+# ---- 5) 매물 목록(호가) 수집 — 기본은 끔. 네이버가 매물 목록 조회를 막고 있어(fin.land 무응답, m.land null) 호출만 쓰고
+# 0건이다. 다시 열리면 HOME_LISTINGS=1 로 켠다. (파이썬 종료코드를 보존: 예외로 죽으면 커밋하지 않고 exit 4)
+if [ "${HOME_LISTINGS:-0}" = "1" ]; then
+  log "네이버 매물 수집 시작 (REGION_FILTER=${REGION_FILTER:-전체}, NAVER_MAX_CALLS=${NAVER_MAX_CALLS:-1500})"
+  set +e
+  OUT="$(.venv/bin/python -m collector listings)"
+  RC=$?
+  set -e
+  RESULT="$(printf '%s\n' "$OUT" | tail -n 1)"
+  log "결과: $RESULT"
+  if [ "$RC" -ne 0 ]; then
+    log "매물 수집이 비정상 종료했습니다(exit $RC). 커밋하지 않습니다 — 위 오류 메시지를 확인하세요."
+    exit 4
+  fi
+  case "$RESULT" in
+    *'"status": "blocked'*) log "네이버가 요청을 막았습니다. 몇 시간 뒤 다시 시도하거나 NAVER_DELAY_SEC 를 늘리세요." ;;
+    *'"status": "skipped'*) log "직전 수집이 최근이라 건너뛰었습니다 (LISTINGS_MIN_INTERVAL_MIN)." ;;
+  esac
+fi
 
 # ---- 5b) (선택) 토허 수집도 집 PC 에서: HOME_TOHEO=1
 # GitHub Actions(해외 IP)에서는 서울 자치구 새올·land.seoul.go.kr 연결이 막히는 날이 있다. 국내 IP 인 집 PC 에서
@@ -132,7 +152,7 @@ if [ "${HOME_TOHEO:-0}" != "0" ]; then
   TRC=$?
   set -e
   log "토허 결과: $(printf '%s\n' "$TOUT" | tail -n 1 | cut -c1-300)"
-  [ "$TRC" -ne 0 ] && log "토허 수집이 비정상 종료했습니다(exit $TRC). 매물 결과만 커밋합니다."
+  [ "$TRC" -ne 0 ] && log "토허 수집이 비정상 종료했습니다(exit $TRC). 나머지 결과만 커밋합니다."
 fi
 
 # ---- 6) 커밋·푸시
@@ -143,7 +163,7 @@ if git diff --cached --quiet; then
   exit 0
 fi
 git -c user.name=collector-home -c user.email=collector-home@users.noreply.github.com \
-  commit -qm "listings(home) $(date -u +'%Y-%m-%dT%H:%MZ')"
+  commit -qm "home $(date -u +'%Y-%m-%dT%H:%MZ')"
 if [ "${NO_PUSH:-0}" = "1" ]; then
   log "NO_PUSH=1: 푸시 생략"
   exit 0
