@@ -2089,13 +2089,13 @@
   }
  },
  "match": {
-  "at": "2026-11-28T23:58:37+09:00",
-  "dongs": 0,
-  "matched": 0,
+  "at": "2026-11-29T00:05:16+09:00",
+  "dongs": 1,
+  "matched": 10,
   "changed": 0,
-  "status": "blocked: HTTP 307 요청 제한 (mobile) — 몇 시간 뒤 다시 시도",
+  "status": "ok",
   "calls": 1,
-  "pending": 965,
+  "pending": 964,
   "emptyDongs": 0,
   "failedDongs": 0,
   "log": []
