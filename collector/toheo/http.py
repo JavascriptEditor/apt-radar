@@ -28,10 +28,9 @@ USER_AGENT = os.environ.get(
 )
 
 # 접속 불가 판정을 계열 단위로 묶는 규칙: 호스트 접미사 → 계열 이름
+# land.seoul.go.kr(허가 내역)은 새올과 서버가 달라 계열에 넣지 않는다 — 새올 후보 호스트가 죽었다고 허가까지 건너뛰면 안 됨
 FAMILIES = (
     (".eminwon.seoul.kr", "seoul"),
-    (".seoul.go.kr", "seoul"),
-    ("land.seoul.go.kr", "seoul"),
 )
 
 
@@ -112,7 +111,8 @@ class Polite:
     def _mark_unreachable(self, host: str, reason: str) -> None:
         self.unreachable[host] = reason
         fam = family_of(host)
-        if not fam:
+        # 계열 차단 판정은 연결 타임아웃(IP 차단의 전형)만 센다. DNS 실패·인증서 오류는 '없는 후보 호스트' 일 뿐이다
+        if not fam or "ConnectTimeout" not in reason:
             return
         hosts = self._family_hosts.setdefault(fam, set())
         hosts.add(host)

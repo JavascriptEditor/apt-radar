@@ -84,10 +84,12 @@ def test_polite_blocks_whole_seoul_family_after_three_hosts():
             p.get(f"https://{h}/list")
     assert "seoul" in p.blocked_families and "차단 추정" in p.blocked_families["seoul"]
     n = len(sess.calls)
-    # 4번째 서울 호스트(허가 사이트 포함)는 호출 없이 즉시 실패
+    # 4번째 서울 새올 호스트는 호출 없이 즉시 실패
     with pytest.raises(thttp.Unreachable) as ei:
-        p.get("https://land.seoul.go.kr/land/other/contractStatus.do")
+        p.get("https://mapo.eminwon.seoul.kr/list")
     assert "seoul 계열" in str(ei.value) and len(sess.calls) == n
+    # 허가 사이트(land.seoul.go.kr)는 새올 계열과 별개 — 계속 시도한다
+    assert p.get("https://land.seoul.go.kr/land/other/contractStatus.do").status_code == 200
     # 경기 계열은 영향 없음
     assert p.get("https://eminwon.yongin.go.kr/list").status_code == 200
 
@@ -116,7 +118,18 @@ def test_polite_deadline():
 
 def test_family_of():
     assert thttp.family_of("gangnam.eminwon.seoul.kr") == "seoul"
-    assert thttp.family_of("land.seoul.go.kr") == "seoul"
+    assert thttp.family_of("land.seoul.go.kr") is None
+
+
+def test_dead_candidate_hosts_do_not_block_family():
+    """DNS 실패·인증서 오류(없는 후보 호스트)는 계열 차단으로 세지 않는다."""
+    hosts = ["a.eminwon.seoul.kr", "b.eminwon.seoul.kr", "c.eminwon.seoul.kr"]
+    sess = FailSession({h: requests.exceptions.SSLError for h in hosts})
+    p = thttp.Polite(delay=0, session=sess)
+    for h in hosts:
+        with pytest.raises(thttp.HttpError):
+            p.get(f"https://{h}/list")
+    assert p.blocked_families == {}
     assert thttp.family_of("eminwon.suwon.go.kr") is None
 
 
