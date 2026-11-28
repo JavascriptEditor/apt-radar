@@ -69,7 +69,15 @@ def royal_dongs(cx_model: dict) -> dict:
     worst = min(ds, key=lambda d: ds[d]["b"])
     if ds[best]["b"] - ds[worst]["b"] < 0.02:
         return {}
-    return {"royal": best, "worst": worst, "spread": round(ds[best]["b"] - ds[worst]["b"], 4)}
+    ranked = sorted(ds, key=lambda d: (-ds[d]["b"], d))
+    return {"royal": best, "worst": worst, "spread": round(ds[best]["b"] - ds[worst]["b"], 4),
+            # 프리미엄 높은 순 상위 3개 동(표본 3건 이상)과 판정 근거. reliable: 로얄동·최하위 동 모두 표본 ROYAL_RELIABLE_N 건 이상
+            "top": [{"dong": d, "b": ds[d]["b"], "n": ds[d]["n"]} for d in ranked[:3]],
+            "bottom": {"dong": worst, "b": ds[worst]["b"], "n": ds[worst]["n"]},
+            "nDongs": len(ds), "reliable": min(ds[best]["n"], ds[worst]["n"]) >= ROYAL_RELIABLE_N}
+
+
+ROYAL_RELIABLE_N = 8
 
 
 def judge_listing(model: dict, cid: str, listing: dict) -> dict | None:

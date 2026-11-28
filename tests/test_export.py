@@ -142,6 +142,29 @@ def test_liquidity_on_complex_page_and_ranking_file(world):
     assert (mine["n12"], mine["rank"], mine["of"]) == (q["n12"], q["rank"], q["of"]) and mine["fair"]
 
 
+def test_royal_dong_summary_and_ranking_file(world):
+    from collector.judge import ROYAL_RELIABLE_N, royal_dongs
+    cm = {"dong": {"101": {"b": 0.05, "n": 12}, "102": {"b": 0.031, "n": 9}, "103": {"b": 0.0, "n": 20},
+                   "104": {"b": -0.04, "n": 8}, "105": {"b": 0.2, "n": 2}}}                       # 105동은 표본 2건이라 제외
+    ry = royal_dongs(cm)
+    assert (ry["royal"], ry["worst"], ry["spread"], ry["nDongs"], ry["reliable"]) == ("101", "104", 0.09, 4, True)
+    assert [x["dong"] for x in ry["top"]] == ["101", "102", "103"] and ry["bottom"] == {"dong": "104", "b": -0.04, "n": 8}
+    cm["dong"]["104"]["n"] = ROYAL_RELIABLE_N - 1
+    assert royal_dongs(cm)["reliable"] is False
+    assert royal_dongs({"dong": {"101": {"b": 0.01, "n": 9}, "102": {"b": 0.0, "n": 9}}}) == {}   # 차이 2% 미만
+    out = world["out"]
+    rj = _j(out / "data" / "royal.json")
+    f = rj["fields"]
+    assert f[:5] == ["cid", "name", "sgg", "umd", "royal"] and set(rj) >= {"top", "bySgg", "generatedAt"}
+    for rows in list(rj["bySgg"].values()) + [rj["top"]]:
+        sp = [dict(zip(f, r))["spread"] for r in rows]
+        assert sp == sorted(sp, reverse=True) and all(v >= 0.02 for v in sp)
+    for r in rj["top"]:
+        x = dict(zip(f, r))
+        page = _j(out / "data" / "c" / f"{x['cid']}.json")["model"]["royal"]
+        assert page["royal"] == x["royal"] and page["reliable"] and page["top"][0]["b"] == x["royalB"]
+
+
 def test_complex_page_toheo_block_and_listing_field(world):
     out, sc, e = world["out"], world["scenario"], world["engine"]
     page = _j(out / "data" / "c" / f"{sc['cid']}.json")

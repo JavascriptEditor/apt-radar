@@ -32,6 +32,8 @@ INDEX_FIELDS = ["cid", "name", "sgg", "umd", "buildYear", "households", "naverId
                 "bestGrade", "lastYm", "fairs", "n"]
 LIQ_FIELDS = ["cid", "name", "sgg", "umd", "n12", "perYear", "months12", "last", "grp", "fair", "zoneLevel", "rank", "of"]
 LIQ_TOP_N = 40
+ROYAL_FIELDS = ["cid", "name", "sgg", "umd", "royal", "royalB", "royalN", "worst", "worstB", "spread", "nDongs", "grp", "fair",
+                "zoneLevel"]
 COVERAGE = {"seoul": "허가 완료 단지 단위", "gyeonggi": "지정·접수 추세만", "incheon": "규제지역 아님"}
 EMPTY_TOHEO = {"zone": 0, "until": None, "open": None, "est": None}
 
@@ -394,6 +396,28 @@ def export_site(engine: Engine, out_dir: str | os.PathLike, site_url: str | None
         liq_rows[c.get("sgg", "")].append([cid, c.get("name", ""), c.get("sgg", ""), c.get("umd", ""), st["n12"], st["perYear"],
                                           st["months12"], st["last"], _int(g), fair, th.zone(c.get("sgg", ""), c.get("umd"))["level"],
                                           st["rank"], st["of"]])
+    # ---- 로얄동 순위: 동 간 가격 차이(spread)가 큰 단지. 표본이 충분한(reliable) 단지만
+    royal_rows: dict[str, list[list]] = defaultdict(list)
+    for grp_, m_ in models.items():
+        for cid, cm in m_.get("complexes", {}).items():
+            c = engine.complexes.get(cid)
+            if not c or c.get("sgg") not in engine.codes or safe_name(cid) is None:
+                continue
+            ry = royal_dongs(cm)
+            if not ry or not ry["reliable"]:
+                continue
+            groups_ = cm.get("groups", {})
+            g = max(groups_, key=lambda k: (groups_[k].get("n12", 0), groups_[k].get("n", 0)), default=None)
+            royal_rows[c.get("sgg", "")].append([cid, c.get("name", ""), c.get("sgg", ""), c.get("umd", ""), ry["royal"],
+                                                ry["top"][0]["b"], ry["top"][0]["n"], ry["worst"], ry["bottom"]["b"], ry["spread"],
+                                                ry["nDongs"], _int(g), (groups_.get(g) or {}).get("fair") if g else None,
+                                                th.zone(c.get("sgg", ""), c.get("umd"))["level"]])
+    for rows_ in royal_rows.values():
+        rows_.sort(key=lambda r: (-r[9], r[0]))
+    royal_all = sorted((r for rows_ in royal_rows.values() for r in rows_), key=lambda r: (-r[9], r[0]))
+    _dump(data / "royal.json", {"generatedAt": gen, "fields": ROYAL_FIELDS, "top": royal_all[:LIQ_TOP_N * 5],
+                                "bySgg": {sgg: rows_[:LIQ_TOP_N] for sgg, rows_ in sorted(royal_rows.items())}})
+
     for rows_ in liq_rows.values():
         rows_.sort(key=lambda r: r[11])
     all_rows = sorted((r for rows_ in liq_rows.values() for r in rows_), key=lambda r: (-r[4], -r[5], r[0]))

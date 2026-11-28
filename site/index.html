@@ -503,18 +503,33 @@ async function renderExplore() {
   const size = $('#fSize').value, budget = +$('#fBudget').value, grade = $('#fGrade').value, sort = $('#fSort').value, conf = $('#fConf').checked, zone = $('#fZone').value;
   if (!ls.length) {
     // 호가 매물이 없으면(네이버 매물 목록 미수집) 실거래로 본 '거래 활발한 단지' 를 대신 보여 준다
+    const mode = LS.get('exMode', 'liq');
+    const tabs = `<div style="display:flex;gap:6px;margin:0 0 8px"><button type="button" class="chip ${mode === 'liq' ? 'on' : ''}" data-exmode="liq">거래 활발한 단지</button><button type="button" class="chip ${mode === 'royal' ? 'on' : ''}" data-exmode="royal">로얄동 차이 큰 단지</button></div>`;
+    const bindTabs = () => list.querySelectorAll('[data-exmode]').forEach(b => b.addEventListener('click', () => { LS.set('exMode', b.dataset.exmode); renderExplore(); }));
+    const inFilter = (x) => {
+      if (size) { const [a, b] = size.split('-').map(Number); if (x.grp == null || x.grp < a || x.grp > b) return false; }
+      if (budget && (!x.fair || x.fair > budget)) return false;
+      if (zone) { if (zone === 'zone' ? !x.zoneLevel : x.zoneLevel > 0) return false; }
+      return true;
+    };
+    const ryj = mode === 'royal' ? await json('data/royal.json').catch(() => null) : null;
+    if (ryj) {
+      const f = ryj.fields, obj = (r) => Object.fromEntries(f.map((k, i) => [k, r[i]]));
+      const rows = (codes ? codes.flatMap(c => (ryj.bySgg[c] || [])) : ryj.top).map(obj).filter(inFilter).sort((a, b) => b.spread - a.spread);
+      $('#exploreSum').textContent = `${codes ? codes.map(sggShort).join(', ') : '수도권 전체'} · 동 간 가격 차이가 큰 단지 ${rows.length.toLocaleString()}곳 (실거래 기준 · 표본 충분한 단지만)`;
+      list.innerHTML = tabs + (rows.length ? `<div class="rows">${rows.slice(0, 200).map(x => `<a class="row two link" href="${cxLink(x.cid)}"><span class="main"><b>${esc(x.name)}</b> ${zoneBadge({ level: x.zoneLevel })}<div class="st">${esc(sggShort(x.sgg))} ${esc(x.umd || '')} · 로얄 ${esc(x.royal)}동 ${fmtPct(x.royalB)} (${x.royalN}건) · 최저 ${esc(x.worst)}동 ${fmtPct(x.worstB)} · 동 ${x.nDongs}개${x.fair ? ` · ${fmtArea(null, x.grp)} 기준가 ${fmtPrice(x.fair)}` : ''}</div></span><span class="num"><div class="o">${fmtPct(x.spread)}</div><div class="ol">동 간 차이</div></span></a>`).join('')}</div>`
+        : `<div class="empty"><b>조건에 맞는 단지가 없어요</b>평형·예산 조건을 넓혀 보세요.</div>`);
+      bindTabs();
+      return;
+    }
     const lq = await json('data/liquidity.json').catch(() => null);
     if (lq) {
       const f = lq.fields, obj = (r) => Object.fromEntries(f.map((k, i) => [k, r[i]]));
-      let rows = (codes ? codes.flatMap(c => (lq.bySgg[c] || [])) : lq.top).map(obj).filter(x => {
-        if (size) { const [a, b] = size.split('-').map(Number); if (x.grp == null || x.grp < a || x.grp > b) return false; }
-        if (budget && (!x.fair || x.fair > budget)) return false;
-        if (zone) { if (zone === 'zone' ? !x.zoneLevel : x.zoneLevel > 0) return false; }
-        return true;
-      }).sort((a, b) => b.n12 - a.n12 || b.perYear - a.perYear);
+      const rows = (codes ? codes.flatMap(c => (lq.bySgg[c] || [])) : lq.top).map(obj).filter(inFilter).sort((a, b) => b.n12 - a.n12 || b.perYear - a.perYear);
       $('#exploreSum').textContent = `${codes ? codes.map(sggShort).join(', ') : '수도권 전체'} · 최근 12개월 거래가 활발한 단지 ${rows.length.toLocaleString()}곳 (호가 매물 미수집 — 실거래 기준)`;
-      list.innerHTML = rows.length ? `<div class="rows">${rows.slice(0, 200).map(x => `<a class="row two link" href="${cxLink(x.cid)}"><span class="main"><b>${esc(x.name)}</b> ${zoneBadge({ level: x.zoneLevel })}<div class="st">${esc(sggShort(x.sgg))} ${esc(x.umd || '')} · 3년 연평균 ${x.perYear}건 · 거래 있던 달 ${x.months12}/12 · 구 안 ${x.rank}/${x.of}위${x.fair ? ` · ${fmtArea(null, x.grp)} 기준가 ${fmtPrice(x.fair)}` : ''} · 최근 ${fmtDate(x.last)}</div></span><span class="num"><div class="o">${fmtN(x.n12)}</div><div class="ol">12개월 거래</div></span></a>`).join('')}</div>`
-        : `<div class="empty"><b>조건에 맞는 단지가 없어요</b>평형·예산 조건을 넓혀 보세요.</div>`;
+      list.innerHTML = tabs + (rows.length ? `<div class="rows">${rows.slice(0, 200).map(x => `<a class="row two link" href="${cxLink(x.cid)}"><span class="main"><b>${esc(x.name)}</b> ${zoneBadge({ level: x.zoneLevel })}<div class="st">${esc(sggShort(x.sgg))} ${esc(x.umd || '')} · 3년 연평균 ${x.perYear}건 · 거래 있던 달 ${x.months12}/12 · 구 안 ${x.rank}/${x.of}위${x.fair ? ` · ${fmtArea(null, x.grp)} 기준가 ${fmtPrice(x.fair)}` : ''} · 최근 ${fmtDate(x.last)}</div></span><span class="num"><div class="o">${fmtN(x.n12)}</div><div class="ol">12개월 거래</div></span></a>`).join('')}</div>`
+        : `<div class="empty"><b>조건에 맞는 단지가 없어요</b>평형·예산 조건을 넓혀 보세요.</div>`);
+      bindTabs();
       return;
     }
   }
@@ -587,6 +602,14 @@ async function renderComplex(cid) {
     const mx = Math.max(0.03, ...ds.map(([, x]) => Math.abs(x.b)));
     dongHtml = ds.length ? ds.map(([d, x]) => `<div class="bar"><span class="lab">${esc(d)}동${royal === d ? ' <span class="grade SS">로얄</span>' : ''}</span><span class="trk"><b></b><i class="${x.b >= 0 ? 'p' : 'n'}" style="${x.b >= 0 ? 'left:50%' : 'right:50%'};width:${Math.min(50, Math.abs(x.b) / mx * 50)}%"></i></span><span class="val">${fmtPct(x.b)}<small>${x.n}건</small></span></div>`).join('') : '<div class="note">2023년 이후 거래에만 동 정보가 있어 아직 동별 차이를 셈할 수 없어요.</div>';
   }
+  // 로얄동 TOP3 요약: 프리미엄을 거래가 가장 많은 평형의 기준가로 환산해 금액으로도 보여 준다
+  let royalHtml = '';
+  if (m && m.royal && (m.royal.top || []).length) {
+    const ry = m.royal, mg = groups.slice().sort((a, b) => (b[1].n12 - a[1].n12) || (b[1].n - a[1].n))[0];
+    const won = (b) => mg ? ` <small class="note">≈ ${b >= 0 ? '+' : '−'}${fmtPrice(Math.round(Math.abs(mg[1].fair * (Math.exp(b) - 1)) / 100) * 100)}</small>` : '';
+    royalHtml = `<div class="minis" style="grid-template-columns:repeat(${Math.min(3, ry.top.length)},1fr);margin-bottom:8px">${ry.top.map((x, i) => `<div class="mini"><div class="l">${i + 1}위 · ${x.n}건</div><div class="v">${esc(x.dong)}동 <small>${fmtPct(x.b)}</small></div><div class="l">${won(x.b)}</div></div>`).join('')}</div>
+      <div class="note" style="margin-bottom:8px">가장 낮은 동은 ${esc(ry.bottom.dong)}동 ${fmtPct(ry.bottom.b)} · 동 간 차이 ${fmtPct(ry.spread)}${mg ? ` (${fmtArea(null, +mg[0])} 기준가 ${fmtPrice(mg[1].fair)} 기준 약 ${fmtPrice(Math.round(mg[1].fair * (Math.exp(ry.top[0].b) - Math.exp(ry.bottom.b)) / 100) * 100)})` : ''} · 동 ${ry.nDongs}개 비교 ${ry.reliable ? '' : '<span class="pill w">표본 적음</span>'}</div>`;
+  }
   const floorOrder = ['f1', 'f2', 'f3', 'low', 'mid', 'high', 'top'];
   const floorLabel = { f1: '1층', f2: '2층', f3: '3층', low: '저층', mid: '중층', high: '고층', top: '최상층' };
   const floorHtml = m ? floorOrder.map(k => { const b = m.floor[k] || 0, n = (m.floorN || {})[k] || 0; return `<div class="bar"><span class="lab">${floorLabel[k]}</span><span class="trk"><b></b><i class="${b >= 0 ? 'p' : 'n'}" style="${b >= 0 ? 'left:50%' : 'right:50%'};width:${Math.min(50, Math.abs(b) / 0.12 * 50)}%"></i></span><span class="val">${k === 'mid' ? '기준' : fmtPct(b)}<small>${n}건</small></span></div>`; }).join('') : '';
@@ -615,7 +638,7 @@ async function renderComplex(cid) {
       <button class="btn primary full" type="submit">판정하기</button>
     </form><div id="judgeOut"></div></div>` : ''}
   <div class="panel"><h2>단지 안 매물 순위 <small>${ls.length}건, 싼 순</small></h2>${rankHtml}</div>
-  ${m ? `<div class="panel"><h2>동별 프리미엄 <small>같은 평형·층 기준</small></h2>${dongHtml}</div>
+  ${m ? `<div class="panel"><h2>${royalHtml ? '로얄동 · ' : ''}동별 프리미엄 <small>같은 평형·층 기준 · 실거래로 계산</small></h2>${royalHtml}${dongHtml}</div>
   <div class="panel"><h2>층 효과 <small>중층 대비</small></h2>${floorHtml}</div>
   <div class="panel"><h2>시세 흐름 <small>36개월, 로그 지수</small></h2>${chart}<div class="legend"><span><i style="background:var(--cheap)"></i>${esc(c.name)}</span><span><i style="background:var(--mute)"></i>${esc(c.sggName)} 평균</span></div></div>` : ''}
   <div class="panel"><h2>최근 실거래 <small>36개월</small></h2>${tradesHtml}</div>
