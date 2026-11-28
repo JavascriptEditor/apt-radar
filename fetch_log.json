@@ -2057,21 +2057,16 @@
   }
  },
  "match": {
-  "at": "2026-11-27T12:45:48+09:00",
-  "dongs": 2,
+  "at": "2026-11-28T23:57:46+09:00",
+  "dongs": 0,
   "matched": 0,
   "changed": 0,
-  "status": "blocked: 연결 실패 3회 연속 (ReadTimeout; GitHub Actions 해외 IP 차단 추정 — 집 PC 수집을 쓰세요)",
-  "calls": 3,
-  "pending": 965,
-  "emptyDongs": 2,
-  "log": [
-   "error https://m.land.naver.com/complex/ajax/complexListByCortarNo?cortarNo=1120010100&rletTpCd=APT:ABYG:JGC: ReadTimeout: HTTPSConnectionPool(host='m.land.naver.com', port=443): Read timed out. (read timeout=20)",
-   "complexes_by_cortar 실패: error {'cortarNo': '1120010100'}",
-   "error https://m.land.naver.com/complex/ajax/complexListByCortarNo?cortarNo=1120011400&rletTpCd=APT:ABYG:JGC: ReadTimeout: HTTPSConnectionPool(host='m.land.naver.com', port=443): Read timed out. (read timeout=20)",
-   "complexes_by_cortar 실패: error {'cortarNo': '1120011400'}",
-   "error https://m.land.naver.com/complex/ajax/complexListByCortarNo?cortarNo=1120011500&rletTpCd=APT:ABYG:JGC: ReadTimeout: HTTPSConnectionPool(host='m.land.naver.com', port=443): Read timed out. (read timeout=20)"
-  ]
+  "status": "blocked: HTTP 307 요청 제한 (mobile) — 몇 시간 뒤 다시 시도",
+  "calls": 1,
+  "pending": 343,
+  "emptyDongs": 0,
+  "failedDongs": 0,
+  "log": []
  },
  "listings": {
   "at": "2026-11-28T23:55:27+09:00",
