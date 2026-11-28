@@ -2089,23 +2089,25 @@
   }
  },
  "match": {
-  "at": "2026-11-29T00:05:16+09:00",
-  "dongs": 1,
-  "matched": 10,
+  "at": "2026-11-29T00:06:04+09:00",
+  "dongs": 40,
+  "matched": 528,
   "changed": 0,
   "status": "ok",
-  "calls": 1,
-  "pending": 964,
-  "emptyDongs": 0,
-  "failedDongs": 0,
-  "log": []
+  "calls": 40,
+  "pending": 924,
+  "emptyDongs": 1,
+  "failedDongs": 1,
+  "log": [
+   "complexes_by_cortar 실패: html {'cortarNo': '1120016200'}"
+  ]
  },
  "listings": {
-  "at": "2026-11-28T23:58:37+09:00",
-  "complexes": 0,
-  "total": 0,
-  "status": "ok",
-  "calls": 0,
+  "at": "2026-11-29T00:11:16+09:00",
+  "complexes": 15,
+  "total": 538,
+  "status": "partial",
+  "calls": 30,
   "n": 0,
   "nAll": 0,
   "nGone": 0,
@@ -2121,6 +2123,6 @@
   "truncated": 0,
   "stale": 0,
   "suspect": 0,
-  "failed": 0
+  "failed": 15
  }
 }

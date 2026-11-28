@@ -1,29 +1,16 @@
 {
- "at": "2026-11-27T12:45:48+09:00",
+ "at": "2026-11-29T00:06:04+09:00",
  "kind": "match",
- "status": "blocked: 연결 실패 3회 연속 (ReadTimeout; GitHub Actions 해외 IP 차단 추정 — 집 PC 수집을 쓰세요)",
+ "status": "ok",
  "diag": [
   {
    "cortar": [
-    "1120010100"
+    "1120016200"
    ],
    "log": [
-    "error https://m.land.naver.com/complex/ajax/complexListByCortarNo?cortarNo=1120010100&rletTpCd=APT:ABYG:JGC: ReadTimeout: HTTPSConnectionPool(host='m.land.naver.com', port=443): Read timed out. (read timeout=20)",
-    "complexes_by_cortar 실패: error {'cortarNo': '1120010100'}"
+    "complexes_by_cortar 실패: html {'cortarNo': '1120016200'}"
    ],
-   "sample": null
-  },
-  {
-   "cortar": [
-    "1120011400"
-   ],
-   "log": [
-    "error https://m.land.naver.com/complex/ajax/complexListByCortarNo?cortarNo=1120010100&rletTpCd=APT:ABYG:JGC: ReadTimeout: HTTPSConnectionPool(host='m.land.naver.com', port=443): Read timed out. (read timeout=20)",
-    "complexes_by_cortar 실패: error {'cortarNo': '1120010100'}",
-    "error https://m.land.naver.com/complex/ajax/complexListByCortarNo?cortarNo=1120011400&rletTpCd=APT:ABYG:JGC: ReadTimeout: HTTPSConnectionPool(host='m.land.naver.com', port=443): Read timed out. (read timeout=20)",
-    "complexes_by_cortar 실패: error {'cortarNo': '1120011400'}"
-   ],
-   "sample": null
+   "sample": "{\"result\": [{\"hscpNo\": \"8105\", \"hscpNm\": \"금호베스트빌\", \"hscpTypeCd\": \"A01\", \"hscpTypeNm\": \"아파트\", \"lat\": \"37.549355\", \"lng\": \"127.057575\", \"cortarNo\": \"1120011800\", \"dealCnt\": 2, \"leaseCnt\": 0, \"rentCnt\": 0, \"strmRentCnt\": 0, \"hasBookMark\": 0}, {\"hscpNo\": \"204810\", \"hscpNm\": \"도시형(67-22)\", \"hscpTypeCd\": \"A01\", \"hscpTypeNm\": \"아파트\", \"lat\": \"37.548495\", \"lng\": \"127.061916\", \"cortarNo\": \"1120011800\", \"dealCnt\": 0, \"leaseCnt\": 0, \"rentCnt\": 0, \"strmRentCnt\": 0, \"hasBookMark\": 0}, {\"hscpNo\": \"27132\", \"hscpNm\": \"서울숲IPARK\", \"hscpTypeCd\": \"A01\", \"hscpTypeNm\": \"아파트\", \"lat\": \"37.5525\", \"lng\": \"127.069\", \"cortarNo\": \"1120011800\", \"dealCnt\": 5, \"leaseCnt\": 3, \"rentCnt\": 2, \"strmRentCnt\": 0, \"hasBookMark\": 0}, {\"hscpNo\": \"104719\", \"hscpNm\": \"성동리버뷰\", \"hscpTypeCd\": \"A01\", \"hscpTypeNm\": \"아파트\", \"lat\": \"37.555262\", \"lng\": \"127.06969\", \"cortarNo\": \"1120011800\", \"dealCnt\": 0, \"leaseCnt\": 0, \"rentCnt\": 0, \"strmRentCnt\": 0, \"hasBookMark\": 0}, {\"hscpNo\": \"1178\", \"hscpNm\": \"송정건영\", \"hscpTypeCd\": \"A01\", \"hscpTypeNm\": \"아파트\", \"lat\": \"37.556024\", \"lng\": \"127.070258\", \"cortarNo\": \"1120011800\", \"dealCnt\": 8, \"leaseCnt\": 0, \"rentCnt\": 1, \"strmRentCnt\": 0, \"hasBookMark\": 0}, {\"hscpNo\": \"17302\", \"hscpNm\": \"송정센스빌\", \"hscpTypeCd\": \"A02\", \"hscpTypeNm\": \"오피스텔\", \"lat\": \"37.549678\", \"lng\": \"127.056349\", \"cortarNo\": \"1120011800\", \"dealCnt\": 0, \"leaseCnt\": 0, \"rentCnt\": 0, \"strmRentCnt\": 0, \"hasBookMark\": 0}, {\"hscpNo\": \"118352\", \"hscpNm\": \"양지쉐르빌\", \"hscpTypeCd\": \"A01\", \"hscpTypeNm\": \"아파트\", \"lat\": \"37.557629\", \"lng\": \"127.072"
   }
  ]
 }
