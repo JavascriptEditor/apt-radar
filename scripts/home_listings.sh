@@ -68,7 +68,23 @@ if [ ! -d data/.git ] && [ ! -f data/.git ]; then
   git fetch -q origin data:data --update-head-ok 2>/dev/null || git fetch -q origin data
   git worktree add data data
 fi
-( cd data && { git rebase --abort >/dev/null 2>&1 || true; } && git fetch -q origin data && git reset -q --hard origin/data )
+# 로컬에만 있는 결과(NO_PUSH 커밋, 직접 돌린 `collector match`·`toheo` 의 미커밋 변경)를 버리지 않는다:
+# 먼저 커밋해 두고 원격 위에 얹는다(충돌 시 집 PC 결과 우선). reset --hard 는 쓰지 않는다.
+(
+  cd data
+  git rebase --abort >/dev/null 2>&1 || true
+  git add -A
+  if ! git diff --cached --quiet; then
+    git -c user.name=collector-home -c user.email=collector-home@users.noreply.github.com \
+      commit -qm "local(home) 미푸시 변경 보존 $(date -u +'%Y-%m-%dT%H:%MZ')"
+    log "data/ 의 미커밋 변경을 커밋해 보존했습니다"
+  fi
+  git fetch -q origin data
+  if ! git -c user.name=collector-home -c user.email=collector-home@users.noreply.github.com rebase -q -X theirs origin/data; then
+    git rebase --abort >/dev/null 2>&1 || true
+    log "원격 data 와 합치지 못했습니다 — 로컬 상태로 계속합니다(푸시 단계에서 다시 시도)"
+  fi
+)
 log "data 브랜치: $(cd data && git log -1 --format='%h %cd' --date=short)"
 
 # ---- 4) 가상환경 + 의존성
@@ -77,6 +93,15 @@ if [ ! -x .venv/bin/python ]; then
   "$PYTHON" -m venv .venv
 fi
 .venv/bin/python -m pip install -q --disable-pip-version-check -r requirements.txt
+
+# ---- 4b) 단지 연결(네이버 단지번호). 연결 안 된 동을 실행당 HOME_MATCH_DONGS(기본 60)개씩 — 네이버가 약 90회에서
+# 요청을 제한하므로 조금씩 나눠 채운다. 0 이면 생략. 막히면(blocked) 그대로 두고 다음 실행에서 이어간다.
+if [ "${HOME_MATCH_DONGS:-60}" != "0" ]; then
+  set +e
+  MOUT="$(.venv/bin/python -m collector match --max-dongs "${HOME_MATCH_DONGS:-60}" 2>&1 | tail -n 1 | cut -c1-200)"
+  set -e
+  log "단지 연결: $MOUT"
+fi
 
 # ---- 5) 매물 수집 (파이썬 종료코드를 보존: 예외로 죽으면 커밋하지 않고 exit 4)
 log "네이버 매물 수집 시작 (REGION_FILTER=${REGION_FILTER:-전체}, NAVER_MAX_CALLS=${NAVER_MAX_CALLS:-1500})"

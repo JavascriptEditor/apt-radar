@@ -92,7 +92,15 @@ Push-Location data
 try {
     & git rebase --abort 2>&1 | Out-Null   # 이전 실행이 rebase 도중 멈췄으면 정리
     Run git @("fetch", "-q", "origin", "data") -Quiet | Out-Null
-    Run git @("reset", "-q", "--hard", "origin/data") -Quiet | Out-Null
+    # 로컬에만 있는 결과(NO_PUSH 커밋·미커밋 변경)를 버리지 않는다: 커밋해 두고 원격 위에 얹는다
+    & git add -A
+    & git diff --cached --quiet
+    if ($LASTEXITCODE -ne 0) {
+        & git -c user.name=collector-home -c user.email=collector-home@users.noreply.github.com commit -qm "local(home) 미푸시 변경 보존"
+        Log "data/ 의 미커밋 변경을 커밋해 보존했습니다"
+    }
+    & git -c user.name=collector-home -c user.email=collector-home@users.noreply.github.com rebase -q -X theirs origin/data 2>&1 | Out-Null
+    if ($LASTEXITCODE -ne 0) { & git rebase --abort 2>&1 | Out-Null; Log "원격 data 와 합치지 못했습니다 - 로컬 상태로 계속합니다" }
     Log ("data 브랜치: " + (& git log -1 --format='%h %cd' --date=short))
 } finally { Pop-Location }
 
