@@ -731,7 +731,19 @@ class Engine:
                 s["n"] += 1
                 s["first"] = min(s["first"], r["ym"])
                 s["last"] = max(s["last"], r["ym"])
+            # 환금성용 거래 건수(해제·직거래 제외): 최근 36개월 월별(tm) + 전체 기간 연도별(ty).
+            # 표시용 trades 는 240건에서 잘리므로 대단지의 건수는 이 값으로 센다.
+            tm: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+            ty: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+            for r in rows:
+                if r["cancelled"] or r.get("direct") or not r.get("price"):
+                    continue
+                ty[r["cid"]][r["ym"][:4]] += 1
+                if r["ym"] >= cutoff:
+                    tm[r["cid"]][r["ym"]] += 1
             for cid, cx in res["complexes"].items():
+                cx["tm"] = dict(sorted(tm[cid].items()))
+                cx["ty"] = dict(sorted(ty[cid].items()))
                 rs = sorted(recent.get(cid, []), key=lambda r: r["date"], reverse=True)[:240]
                 cx["trades"] = [[r["date"], r["price"], r["area"], r["floor"] if r["floor"] is not None else "",
                                  r["dong"], r["direct"], r["cancelled"]] for r in rs]

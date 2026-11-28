@@ -126,6 +126,22 @@ def test_feed_complexes_pipeline_daily_schema(world):
 
 # ----------------------------------------------------------------------------- 단지 toheo 블록·매물 toheo 필드
 
+def test_liquidity_on_complex_page_and_ranking_file(world):
+    out, sc = world["out"], world["scenario"]
+    q = _j(out / "data" / "c" / f"{sc['cid']}.json")["liquidity"]
+    assert {"n12", "n36", "perYear", "months12", "last", "byGrp", "rank", "of", "pct", "level"} <= set(q)
+    assert q["n12"] > 0 and 1 <= q["rank"] <= q["of"]
+    lq = _j(out / "data" / "liquidity.json")
+    f = lq["fields"]
+    assert f[:5] == ["cid", "name", "sgg", "umd", "n12"] and lq["top"] and "11680" in lq["bySgg"]
+    rows = [dict(zip(f, r)) for r in lq["bySgg"]["11680"]]
+    assert [r["rank"] for r in rows] == sorted(r["rank"] for r in rows)                 # 구 안 순위 순
+    assert all(r["n12"] > 0 and r["sgg"] == "11680" for r in rows)
+    assert [r[4] for r in lq["top"]] == sorted((r[4] for r in lq["top"]), reverse=True)
+    mine = next(r for r in rows if r["cid"] == sc["cid"])
+    assert (mine["n12"], mine["rank"], mine["of"]) == (q["n12"], q["rank"], q["of"]) and mine["fair"]
+
+
 def test_complex_page_toheo_block_and_listing_field(world):
     out, sc, e = world["out"], world["scenario"], world["engine"]
     page = _j(out / "data" / "c" / f"{sc['cid']}.json")

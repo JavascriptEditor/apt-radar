@@ -30,6 +30,8 @@ from .toheo.store import ToheoStore
 
 INDEX_FIELDS = ["cid", "name", "sgg", "umd", "buildYear", "households", "naverId", "hasModel", "nListings",
                 "bestGrade", "lastYm", "fairs", "n"]
+LIQ_FIELDS = ["cid", "name", "sgg", "umd", "n12", "perYear", "months12", "last", "grp", "fair", "zoneLevel", "rank", "of"]
+LIQ_TOP_N = 40
 COVERAGE = {"seoul": "허가 완료 단지 단위", "gyeonggi": "지정·접수 추세만", "incheon": "규제지역 아님"}
 EMPTY_TOHEO = {"zone": 0, "until": None, "open": None, "est": None}
 
@@ -313,6 +315,16 @@ def export_site(engine: Engine, out_dir: str | os.PathLike, site_url: str | None
             link_rows.append({**l, "name": c.get("name", ""), "sgg": c.get("sgg", ""), "umd": c.get("umd", ""), "score": sc,
                               "zoneLevel": zone["level"]})
 
+    # ---- 환금성(거래 빈도): 기준가 모델이 있는 단지의 최근 12·36개월 거래 건수와 시군구 안 순위
+    liq: dict[str, dict] = {}
+    for cid, c in engine.complexes.items():
+        if c.get("sgg") in engine.codes and cid in trades_by_cid:
+            cm_ = (models.get(cx_group.get(cid, "")) or {}).get("complexes", {}).get(cid) or {}
+            liq[cid] = pl.liquidity_stats(trades_by_cid[cid], today_d, monthly=cm_.get("tm"))
+            if cm_.get("ty"):
+                liq[cid]["byYear"] = cm_["ty"]
+    pl.rank_liquidity(liq, {cid: engine.complexes[cid].get("sgg", "") for cid in liq})
+
     # ---- 단지 페이지
     index_rows = []
     by_sgg_listings: dict[str, list[dict]] = defaultdict(list)
@@ -354,7 +366,7 @@ def export_site(engine: Engine, out_dir: str | os.PathLike, site_url: str | None
             "households": _int(c.get("households")), "highFloor": _int(c.get("highFloor")), "naverId": c.get("naverId", ""),
             "naverUrl": cx_url.format(complexNo=c["naverId"]) if c.get("naverId") else "", "lat": _float(c.get("lat")),
             "lng": _float(c.get("lng")), "matchScore": _float(c.get("matchScore")), "listingsAt": c.get("listingsAt", ""),
-            "generatedAt": gen, "listings": ls, "nTrades": n_tr, "toheo": tblock,
+            "generatedAt": gen, "listings": ls, "nTrades": n_tr, "toheo": tblock, "liquidity": liq.get(cid),
         }
         if cm:
             months = m["months"]
@@ -369,6 +381,25 @@ def export_site(engine: Engine, out_dir: str | os.PathLike, site_url: str | None
         _dump(data / "c" / f"{cid}.json", page)
 
     _dump(data / "index.json", {"generatedAt": gen, "fields": INDEX_FIELDS, "complexes": index_rows})
+
+    # ---- 환금성 순위: 시군구별 상위 LIQ_TOP_N + 전체 상위. 행 = LIQ_FIELDS
+    liq_rows: dict[str, list[list]] = defaultdict(list)
+    for cid, st in liq.items():
+        if not st["n12"] or safe_name(cid) is None:
+            continue
+        c = engine.complexes[cid]
+        cm = (models.get(cx_group.get(cid, "")) or {}).get("complexes", {}).get(cid) or {}
+        g = st["mainGrp"]
+        fair = (cm.get("groups", {}).get(g) or {}).get("fair") if g else None
+        liq_rows[c.get("sgg", "")].append([cid, c.get("name", ""), c.get("sgg", ""), c.get("umd", ""), st["n12"], st["perYear"],
+                                          st["months12"], st["last"], _int(g), fair, th.zone(c.get("sgg", ""), c.get("umd"))["level"],
+                                          st["rank"], st["of"]])
+    for rows_ in liq_rows.values():
+        rows_.sort(key=lambda r: r[11])
+    all_rows = sorted((r for rows_ in liq_rows.values() for r in rows_), key=lambda r: (-r[4], -r[5], r[0]))
+    _dump(data / "liquidity.json", {"generatedAt": gen, "today": today, "fields": LIQ_FIELDS,
+                                    "top": all_rows[:LIQ_TOP_N * 5],
+                                    "bySgg": {sgg: rows_[:LIQ_TOP_N] for sgg, rows_ in sorted(liq_rows.items())}})
 
     # ---- 지역별 매물·전체 TOP
     for sgg, ls in by_sgg_listings.items():

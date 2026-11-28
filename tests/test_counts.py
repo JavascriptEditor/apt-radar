@@ -186,3 +186,33 @@ def test_complex_summary_counts_block_and_timeline():
     assert c["series"] == [["2026-10-01", 8], ["2026-10-04", 5], ["2026-10-15", 5]] and c["drops"][0]["n"] == 3
     assert any(e["type"] == "gone" and "3건 감소" in e["text"] and "실거래 1건 확인" in e["text"] for e in blk["timeline"])
     assert pl.complex_summary("c1", {}, [], [], trades, None, {"level": 0}, today)["counts"] is None
+
+
+# ----------------------------------------------------------------------------- 환금성(거래 빈도)
+
+def test_liquidity_stats_counts_recent_usable_trades():
+    trades = [_trade("2026-10-01", area=84.9), _trade("2026-10-20", area=84.9), _trade("2026-03-05", area=59.9),
+              _trade("2025-06-01", area=84.9), _trade("2024-01-10", area=59.9),
+              _trade("2026-09-01", direct=1), _trade("2026-09-02", cancelled=1),     # 직거래·해제 제외
+              _trade("2023-01-01"), _trade("2026-12-25")]                             # 36개월 밖·미래 제외
+    st = pl.liquidity_stats(trades, "2026-11-01")
+    assert (st["n12"], st["n36"], st["perYear"], st["months12"]) == (3, 5, 1.7, 2)
+    assert st["last"] == "2026-10-20" and st["daysSince"] == 12
+    assert st["byGrp"] == {"59": 1, "84": 2} and st["mainGrp"] == "84"
+    # 모델의 월별 건수(tm)가 있으면 건수는 그 값으로(거래 목록은 240건에서 잘림). 이번 달 포함 12개 달 / 36개 달
+    tm = {"202611": 4, "202610": 30, "202512": 6, "202511": 9, "202312": 5, "202311": 7, "202301": 99}
+    st2 = pl.liquidity_stats(trades, "2026-11-01", monthly=tm)
+    assert (st2["n12"], st2["n36"], st2["months12"], st2["perYear"]) == (40, 54, 3, 18.0)
+    assert st2["last"] == "2026-10-20" and st2["byGrp"] == {"59": 1, "84": 2}
+    empty = pl.liquidity_stats([], "2026-11-01")
+    assert empty["n12"] == 0 and empty["last"] is None and empty["mainGrp"] is None
+
+
+def test_rank_liquidity_within_sgg():
+    mk = lambda n12, n36, last: {"n12": n12, "n36": n36, "last": last}  # noqa: E731
+    st = {"a": mk(10, 20, "2026-10-01"), "b": mk(10, 30, "2026-09-01"), "c": mk(0, 2, "2025-01-01"),
+          "d": mk(3, 3, "2026-08-01"), "x": mk(1, 1, "2026-01-01")}
+    pl.rank_liquidity(st, {"a": "11680", "b": "11680", "c": "11680", "d": "11680", "x": "11650"})
+    assert [st[k]["rank"] for k in "abcd"] == [2, 1, 4, 3] and st["a"]["of"] == 4      # 동률이면 36개월 건수
+    assert st["b"]["level"] == "높음" and st["c"]["level"] == "거래 없음" and st["d"]["level"] == "낮음"
+    assert (st["x"]["rank"], st["x"]["of"], st["x"]["pct"]) == (1, 1, 1.0)             # 다른 구는 따로

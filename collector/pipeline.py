@@ -118,6 +118,64 @@ def _trade_ref(t: dict | None, days: int | None = None) -> dict | None:
     return ref
 
 
+# ----------------------------------------------------------------------------- 환금성(거래 빈도)
+
+LIQ_LEVELS = ((0.10, "매우 높음"), (0.30, "높음"), (0.60, "보통"), (1.01, "낮음"))
+
+
+def liquidity_stats(trades, today, monthly: dict | None = None) -> dict:
+    """한 단지의 거래 빈도(환금성) — 모델 파일 trades(최근 36개월)로 계산. 해제·직거래 제외.
+
+    {n12, n36, perYear(36개월 연평균), months12(최근 12개월 중 거래가 있던 달 수), last(마지막 계약일), daysSince,
+     byGrp:{평형: 최근 12개월 건수}, mainGrp(최근 36개월 거래가 가장 많은 평형)}.
+    세대수 자료가 없어 회전율(거래 ÷ 세대수)이 아니라 건수다 — 대단지일수록 크게 나온다.
+    monthly({'YYYYMM': 건수}, 모델의 tm)를 주면 n12·n36·perYear·months12 는 그 값으로 센다: trades 는 단지당 240건에서
+    잘려 있어 거래가 많은 대단지는 trades 만으로는 건수가 모자란다. 이때 12개월은 이번 달 포함 최근 12개 달이다.
+    """
+    today = _date(today) or dt.date.today()
+    d12 = (today - dt.timedelta(days=365)).isoformat()
+    d36 = (today - dt.timedelta(days=1095)).isoformat()
+    ts = [t for t in usable_trades(trades, today) if t["date"] >= d36]
+    t12 = [t for t in ts if t["date"] >= d12]
+    by12: dict[str, int] = defaultdict(int)
+    by36: dict[str, int] = defaultdict(int)
+    for t in ts:
+        if t["grp"] is not None:
+            by36[str(t["grp"])] += 1
+    for t in t12:
+        if t["grp"] is not None:
+            by12[str(t["grp"])] += 1
+    last = ts[-1]["date"] if ts else None
+    n12, n36, months12 = len(t12), len(ts), len({t["date"][:7] for t in t12})
+    if monthly:
+        ym = today.year * 12 + today.month - 1
+        cnt = {k: _int(v) or 0 for k, v in monthly.items() if len(str(k)) == 6 and str(k).isdigit()}
+        age = {k: ym - (int(k[:4]) * 12 + int(k[4:]) - 1) for k in cnt}
+        n12 = sum(v for k, v in cnt.items() if 0 <= age[k] < 12)
+        n36 = sum(v for k, v in cnt.items() if 0 <= age[k] < 36)
+        months12 = sum(1 for k, v in cnt.items() if 0 <= age[k] < 12 and v)
+    return {"n12": n12, "n36": n36, "perYear": round(n36 / 3, 1), "months12": months12,
+            "last": last, "daysSince": (today - _date(last)).days if last else None,
+            "byGrp": dict(sorted(by12.items(), key=lambda kv: _int(kv[0]) or 0)),
+            "mainGrp": max(by36, key=lambda g: (by36[g], -(_int(g) or 0))) if by36 else None}
+
+
+def rank_liquidity(stats_by_cid: dict[str, dict], sgg_of: dict[str, str]) -> None:
+    """같은 시군구 안에서 최근 12개월 거래 건수 순위를 매겨 각 stats 에 rank·of·pct·level 을 붙인다(제자리 수정).
+    동률은 36개월 건수, 그다음 최근 거래일 순. 12개월 거래가 0건이면 level 은 '거래 없음'."""
+    by_sgg: dict[str, list[str]] = defaultdict(list)
+    for cid in stats_by_cid:
+        by_sgg[sgg_of.get(cid, "")].append(cid)
+    for cids in by_sgg.values():
+        cids.sort(key=lambda c: (-stats_by_cid[c]["n12"], -stats_by_cid[c]["n36"], -(_date(stats_by_cid[c]["last"]) or dt.date.min).toordinal(), c))
+        n = len(cids)
+        for i, cid in enumerate(cids):
+            st = stats_by_cid[cid]
+            pct = round((i + 1) / n, 3)
+            st.update({"rank": i + 1, "of": n, "pct": pct,
+                       "level": "거래 없음" if st["n12"] == 0 else next(lbl for cut, lbl in LIQ_LEVELS if pct <= cut)})
+
+
 # ----------------------------------------------------------------------------- 지정(토허구역)
 
 def _with_status(items, today) -> list[dict]:

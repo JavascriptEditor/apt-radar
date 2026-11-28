@@ -501,6 +501,23 @@ async function renderExplore() {
     }
   } catch (e) { list.innerHTML = `<div class="empty"><b>아직 매물 데이터가 없어요</b>첫 수집이 끝나면 여기에 나타납니다.</div>`; $('#exploreSum').textContent = ''; return; }
   const size = $('#fSize').value, budget = +$('#fBudget').value, grade = $('#fGrade').value, sort = $('#fSort').value, conf = $('#fConf').checked, zone = $('#fZone').value;
+  if (!ls.length) {
+    // 호가 매물이 없으면(네이버 매물 목록 미수집) 실거래로 본 '거래 활발한 단지' 를 대신 보여 준다
+    const lq = await json('data/liquidity.json').catch(() => null);
+    if (lq) {
+      const f = lq.fields, obj = (r) => Object.fromEntries(f.map((k, i) => [k, r[i]]));
+      let rows = (codes ? codes.flatMap(c => (lq.bySgg[c] || [])) : lq.top).map(obj).filter(x => {
+        if (size) { const [a, b] = size.split('-').map(Number); if (x.grp == null || x.grp < a || x.grp > b) return false; }
+        if (budget && (!x.fair || x.fair > budget)) return false;
+        if (zone) { if (zone === 'zone' ? !x.zoneLevel : x.zoneLevel > 0) return false; }
+        return true;
+      }).sort((a, b) => b.n12 - a.n12 || b.perYear - a.perYear);
+      $('#exploreSum').textContent = `${codes ? codes.map(sggShort).join(', ') : '수도권 전체'} · 최근 12개월 거래가 활발한 단지 ${rows.length.toLocaleString()}곳 (호가 매물 미수집 — 실거래 기준)`;
+      list.innerHTML = rows.length ? `<div class="rows">${rows.slice(0, 200).map(x => `<a class="row two link" href="${cxLink(x.cid)}"><span class="main"><b>${esc(x.name)}</b> ${zoneBadge({ level: x.zoneLevel })}<div class="st">${esc(sggShort(x.sgg))} ${esc(x.umd || '')} · 3년 연평균 ${x.perYear}건 · 거래 있던 달 ${x.months12}/12 · 구 안 ${x.rank}/${x.of}위${x.fair ? ` · ${fmtArea(null, x.grp)} 기준가 ${fmtPrice(x.fair)}` : ''} · 최근 ${fmtDate(x.last)}</div></span><span class="num"><div class="o">${fmtN(x.n12)}</div><div class="ol">12개월 거래</div></span></a>`).join('')}</div>`
+        : `<div class="empty"><b>조건에 맞는 단지가 없어요</b>평형·예산 조건을 넓혀 보세요.</div>`;
+      return;
+    }
+  }
   const gOrder = { SS: 0, S: 1, A: 2, B: 3, C: 4 };
   let out = ls.filter(l => {
     if (size) { const [a, b] = size.split('-').map(Number); if (l.grp == null || l.grp < a || l.grp > b) return false; }
@@ -587,6 +604,7 @@ async function renderComplex(cid) {
     <div class="acts">${c.naverUrl ? `<a class="btn" href="${esc(c.naverUrl)}" target="_blank" rel="noopener">네이버 매물</a>` : ''}<a class="btn" href="feed/c/${esc(cid)}.xml">RSS</a><button type="button" class="btn" id="copyBtn">텍스트 복사</button></div>
   </div>
   <div class="panel"><h2>기준가 <small>${m ? `${fmtYm(c.now)} 기준, 동·층 보정 전` : ''}</small></h2>${fairHtml}</div>
+  ${liquidityPanel(c)}
   ${complexToheoPanel(c)}
   ${m ? `<div class="panel"><h2>매물 직접 판정 <small>네이버에서 본 매물을 넣어 보세요</small></h2>
     <form class="judge" id="judgeForm">
@@ -906,6 +924,17 @@ function pipeStatus(s) { return ({ confirmed: '<span class="pill g">실거래 �
 function countStatus(e) { const u = e.units || {}; const parts = []; if (u.confirmed) parts.push(`<span class="pill g">실거래 확인 ${u.confirmed}</span>`); if (u.pending) parts.push(`<span class="pill b">확인 대기 ${u.pending}</span>`); if (u.unconfirmed) parts.push(`<span class="pill w">미확인 ${u.unconfirmed}</span>`); if (u.relisted) parts.push(`<span class="pill n">다시 늘어남 ${u.relisted}</span>`); return parts.join(' ') + (e.trade ? ` 실거래 ${tradeTxt(e.trade)}` : ''); }
 const scoreHtml = (s) => s == null ? '' : `<span class="score ${s >= 0.6 ? 'hi' : ''}" title="매물 내림이 허가 접수일 가능성(추정)">${Math.round(s * 100)}%</span>`;
 function tradeTxt(t) { return t ? `${fmtDate(t.date)} ${fmtPrice(t.price)}${t.area ? ` ${fmtArea(t.area, null)}` : ''}${t.floor != null && t.floor !== '' ? ` ${t.floor}층` : ''}` : ''; }
+// 환금성(거래 빈도): 최근 12·36개월 실거래 건수와 구 안 순위. 세대수 자료가 없어 회전율이 아니라 건수다.
+function liquidityPanel(c) {
+  const q = c.liquidity;
+  if (!q) return '';
+  const lvCls = { '매우 높음': 'g', '높음': 'g', '보통': 'b', '낮음': 'w', '거래 없음': 'n' }[q.level] || 'n';
+  const grp = Object.entries(q.byGrp || {}).map(([g, n]) => `${fmtArea(null, +g)} ${n}건`).join(' · ');
+  return `<div class="panel"><h2>환금성 <small>팔고 싶을 때 팔리는가 · 실거래 건수 기준</small></h2>
+    <div class="minis"><div class="mini"><div class="l">최근 12개월</div><div class="v">${fmtN(q.n12)}<small>건</small></div></div><div class="mini"><div class="l">3년 연평균</div><div class="v">${q.perYear}<small>건</small></div></div><div class="mini"><div class="l">거래 있던 달</div><div class="v">${q.months12}<small>/12</small></div></div><div class="mini"><div class="l">${esc(c.sggName || '구')} 안 순위</div><div class="v">${fmtN(q.rank)}<small>/${fmtN(q.of)}</small></div></div></div>
+    <div class="note" style="margin-top:6px"><span class="pill ${lvCls}">${esc(q.level)}</span> ${q.n12 ? `${esc(c.sggName || '')} 단지 중 상위 ${Math.max(1, Math.round(q.pct * 100))}%` : '최근 12개월 실거래가 없어요'}${q.last ? ` · 마지막 거래 ${fmtDate(q.last)}${q.daysSince != null ? ` (${q.daysSince}일 전)` : ''}` : ''}${grp ? `<br>평형별 12개월: ${grp}` : ''}</div>
+    <div class="note" style="margin-top:4px">해제·직거래를 뺀 국토부 실거래 건수입니다. 세대수로 나눈 회전율이 아니어서 대단지일수록 높게 나옵니다.</div></div>`;
+}
 function complexToheoPanel(c) {
   const t = c.toheo;
   const head = '<h2>토지거래허가 <small>파이프라인</small></h2>';
