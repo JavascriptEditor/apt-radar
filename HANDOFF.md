@@ -57,7 +57,8 @@
 - 집 맥 자동 실행: launchd `com.aptradar.home-collect` 매일 07:00 (`pmset repeat wakeorpoweron` 06:59). 실행당 단지 연결 30개 동 + 매물 수 관측 50개 동.
   네이버 한도는 약 12분 사이 100회쯤에서 307, 15분 안에 풀림(11-29 실측).
 - 아래 "바로 할 일" 2·3번(매물 응답 실측, 매물 호출 한도)은 이 전환으로 더 이상 해당하지 않습니다.
-- `tests/test_export.py::test_complex_page_toheo_block_and_listing_field` 는 이 변경 전부터 11-29 에 실패합니다(데모 시나리오의 허가↔실거래 날짜). 미해결.
+- 테스트는 `python -m pytest -q` 107개 통과. 단, `tests/test_export.py` 는 토허구역 지정이 유효하다고 가정하므로
+  2027-01-01 부터는 `config/designations.json` 의 연장 여부를 반영하기 전까지 실패합니다.
 
 ## 바로 할 일
 

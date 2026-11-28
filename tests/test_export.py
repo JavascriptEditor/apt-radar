@@ -138,7 +138,12 @@ def test_complex_page_toheo_block_and_listing_field(world):
     p = t["permits"]
     assert (p["n7"], p["n30"], p["total"]) == (2, 2, 2) and len(p["weekly"]) == 12 and p["byPurpose"] == {"주거용": 2}
     assert len(p["recent"]) == 2 and {"date", "purpose", "jibun", "jobGbn", "trade"} <= set(p["recent"][0])
-    assert any(x["trade"] and x["trade"]["date"] == sc["trade"]["date"] for x in p["recent"])   # 허가 ↔ 실거래 매칭
+    # 허가 ↔ 실거래 매칭: 허가일 이후 75일 안의 실거래에 1:1 로 붙는다(심은 거래가 있으니 적어도 한 건은 붙는다).
+    # 심어 둔 실거래(sc["trade"])가 꼭 붙는 것은 아니다 — 가짜 세계의 무작위 거래가 허가일과 더 가까운 날에 생기면
+    # (날짜에 따라 달라짐) 가장 가까운 그 거래가 먼저 붙는 것이 규칙이다.
+    matched = [x for x in p["recent"] if x["trade"]]
+    assert matched and all(0 <= x["trade"]["days"] <= 75 and x["trade"]["date"] >= x["date"] for x in matched)
+    assert len({(x["trade"]["date"], x["trade"]["price"], x["trade"]["floor"]) for x in matched}) == len(matched)
     g = t["byGrp"][str(sc["grp"])]
     assert {"active", "active30ago", "gone30", "confirmed90", "trades30"} <= set(g)
     assert len(g["gone30"]) == 1 and g["gone30"][0]["id"] == sc["atclNo"] and g["gone30"][0]["status"] == "confirmed"
