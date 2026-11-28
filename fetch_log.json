@@ -2117,5 +2117,16 @@
   "stale": 0,
   "suspect": 0,
   "failed": 10
+ },
+ "counts": {
+  "at": "2026-11-29T00:52:32+09:00",
+  "dongs": 20,
+  "complexes": 676,
+  "status": "ok",
+  "calls": 20,
+  "pending": 53,
+  "totalDongs": 73,
+  "failedDongs": 0,
+  "rows": 676
  }
 }
